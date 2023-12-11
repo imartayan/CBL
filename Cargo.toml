@@ -1,0 +1,32 @@
+[package]
+name = "cbl"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cxx = "1.0"
+itertools = "0.12"
+num-traits = "0.2"
+roaring = "0.10"
+seq_io = "0.4.0-alpha.0"
+
+[build-dependencies]
+cxx-build = "1.0"
+
+[dev-dependencies]
+ahash = "0.8"
+clap = { version = "4.4", features = ["derive"] }
+rand = "0.8"
+
+[profile.dev]
+opt-level = 1
+lto = "thin"
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+panic = "abort"
+incremental = true
