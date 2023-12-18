@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug)]
 pub struct PlainVec<T: Ord> {
     vec: Vec<T>,
 }

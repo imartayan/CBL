@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug)]
 pub struct SemiSortedVec<T: Ord + Copy, const THRESHOLD: usize> {
     vec: Vec<T>,
 }
