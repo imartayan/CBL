@@ -13,9 +13,14 @@ using namespace Seq;
 
 // 3 + 3 + 3 + 7 = 16
 using Layer16 = LayerItr<LayerEnd, Layer<8, Layer<8, Layer<8, Layer<128>>>>>;
+// 4 + 4 + 4 + 8 = 20
+using Layer20 = LayerItr<LayerEnd, Layer<16, Layer<16, Layer<16, Layer<256>>>>>;
 // 4 + 4 + 4 + 4 + 8 = 24
 using Layer24 =
     LayerItr<LayerEnd, Layer<16, Layer<16, Layer<16, Layer<16, Layer<256>>>>>>;
+// 5 + 5 + 5 + 5 + 8 = 28
+using Layer28 =
+    LayerItr<LayerEnd, Layer<32, Layer<32, Layer<32, Layer<32, Layer<256>>>>>>;
 // 5 + 6 + 6 + 6 + 9 = 32
 using Layer32 =
     LayerItr<LayerEnd, Layer<32, Layer<64, Layer<64, Layer<64, Layer<512>>>>>>;
@@ -41,5 +46,7 @@ using Layer32 =
   unique_ptr<TieredVec##W> new_tiered_vec_##W();
 
 declTieredVec(16, uint16_t);
+declTieredVec(20, uint32_t);
 declTieredVec(24, uint32_t);
+declTieredVec(28, uint32_t);
 declTieredVec(32, uint32_t);

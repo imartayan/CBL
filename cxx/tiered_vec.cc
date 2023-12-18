@@ -39,5 +39,7 @@
   }
 
 implTieredVec(16, uint16_t);
+implTieredVec(20, uint32_t);
 implTieredVec(24, uint32_t);
+implTieredVec(28, uint32_t);
 implTieredVec(32, uint32_t);
