@@ -1,4 +1,5 @@
 #![feature(slice_group_by)]
+#![feature(generic_const_exprs)]
 
 pub mod bit_container;
 pub mod cbl;
