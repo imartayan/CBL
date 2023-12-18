@@ -22,6 +22,20 @@ impl<const BYTES: usize> CompactInt<BYTES> {
     }
 
     #[inline(always)]
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let mut res = Self::new();
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), res.0.as_mut_ptr(), BYTES);
+        }
+        res
+    }
+
+    #[inline(always)]
+    pub fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    #[inline(always)]
     pub fn get<T: PrimInt + Unsigned>(&self) -> T {
         let mut res = T::zero();
         unsafe {
@@ -61,6 +75,22 @@ impl<const BYTES: usize> PartialOrd for CompactInt<BYTES> {
         Some(self.cmp(other))
     }
 }
+
+// impl<const BYTES: usize> Iterator for CompactInt<BYTES> {
+//     type Item = u8;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if !self.init {
+//             self.init = true;
+//             for _ in 0..K {
+//                 self.kmer = self.kmer.extend(self.bases.next()?);
+//             }
+//             Some(self.kmer)
+//         } else {
+//             self.kmer = self.kmer.append(self.bases.next()?);
+//             Some(self.kmer)
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
