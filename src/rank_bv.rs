@@ -1,8 +1,8 @@
 pub use cxx::UniquePtr;
-pub use ffi::*;
+pub use rbv::*;
 
 #[cxx::bridge]
-mod ffi {
+mod rbv {
     unsafe extern "C++" {
         include!("CBL/cxx/rank_bv.h");
 
