@@ -76,22 +76,6 @@ impl<const BYTES: usize> PartialOrd for CompactInt<BYTES> {
     }
 }
 
-// impl<const BYTES: usize> Iterator for CompactInt<BYTES> {
-//     type Item = u8;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if !self.init {
-//             self.init = true;
-//             for _ in 0..K {
-//                 self.kmer = self.kmer.extend(self.bases.next()?);
-//             }
-//             Some(self.kmer)
-//         } else {
-//             self.kmer = self.kmer.append(self.bases.next()?);
-//             Some(self.kmer)
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
