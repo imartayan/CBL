@@ -6,6 +6,7 @@ pub mod bit_container;
 pub mod cbl;
 pub mod compact_int;
 pub mod container;
+pub mod dynwordset;
 pub mod kmer;
 pub mod necklace;
 pub mod rank_bv;
