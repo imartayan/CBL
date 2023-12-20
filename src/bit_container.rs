@@ -86,3 +86,42 @@ impl BitContainer for RankBitContainer {
         self.bv.count_ones()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const N: usize = 10000;
+    const BITS: usize = 20;
+
+    fn test_bit_container<BC: BitContainer>() {
+        let mut bitset = BC::new_with_len(BITS);
+        for i in (0..(2 * N)).step_by(2) {
+            bitset.insert(i);
+        }
+        for i in (0..(2 * N)).step_by(2) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(2 * N)).skip(1).step_by(2) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+        for i in (0..(2 * N)).step_by(2) {
+            assert_eq!(bitset.rank(i), i / 2, "wrong rank");
+        }
+        for i in (0..(2 * N)).step_by(2) {
+            assert_eq!(bitset.count(), N - i / 2, "wrong count");
+            bitset.remove(i);
+        }
+        assert_eq!(bitset.count(), 0, "wrong count");
+    }
+
+    #[test]
+    fn test_roaring() {
+        test_bit_container::<RoaringBitContainer>();
+    }
+
+    #[test]
+    fn test_rbv() {
+        test_bit_container::<RankBitContainer>();
+    }
+}
