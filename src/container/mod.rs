@@ -1,8 +1,8 @@
 mod plain_vec;
 mod semi_sorted_vec;
 
-pub use plain_vec::*;
-pub use semi_sorted_vec::*;
+pub use plain_vec::PlainVec;
+pub use semi_sorted_vec::SemiSortedVec;
 
 pub trait Container<T> {
     fn new() -> Self;
@@ -13,24 +13,10 @@ pub trait Container<T> {
         self.len() == 0
     }
     fn contains(&self, x: T) -> bool;
-    fn insert(&mut self, x: T);
-    fn remove(&mut self, x: T);
-    #[inline]
-    fn insert_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
-        self.reserve(it.len());
-        for x in it {
-            self.insert(x);
-        }
-    }
-    #[inline]
-    fn remove_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
-        for x in it {
-            self.remove(x);
-        }
-        self.shrink();
-    }
-    fn reserve(&mut self, additional: usize);
-    fn shrink(&mut self);
+    fn insert(&mut self, x: T) -> bool;
+    fn remove(&mut self, x: T) -> bool;
+    fn insert_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I);
+    fn remove_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I);
 }
 
 #[cfg(test)]
@@ -40,8 +26,8 @@ mod tests {
     type T = usize;
     const N: usize = 10000;
 
-    fn test_container<CT: Container<T>>() {
-        let mut container = CT::new();
+    fn test_container<ContainerT: Container<T>>() {
+        let mut container = ContainerT::new();
         for i in (0..(2 * N)).step_by(2) {
             container.insert(i);
         }
@@ -58,8 +44,8 @@ mod tests {
         assert!(container.is_empty());
     }
 
-    fn test_container_iter<CT: Container<T>>() {
-        let mut container = CT::new();
+    fn test_container_iter<ContainerT: Container<T>>() {
+        let mut container = ContainerT::new();
         container.insert_iter((0..(2 * N)).step_by(2));
         for i in (0..(2 * N)).step_by(2) {
             assert!(container.contains(i));

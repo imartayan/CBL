@@ -1,11 +1,11 @@
-use super::*;
+use super::Container;
 
 #[derive(Debug)]
-pub struct SemiSortedVec<T: Ord + Copy, const THRESHOLD: usize> {
+pub struct SemiSortedVec<T: Ord, const THRESHOLD: usize> {
     vec: Vec<T>,
 }
 
-impl<T: Ord + Copy, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD> {
+impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD> {
     #[inline]
     fn new() -> Self {
         Self { vec: Vec::new() }
@@ -29,31 +29,37 @@ impl<T: Ord + Copy, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, TH
         }
     }
 
-    fn insert(&mut self, x: T) {
+    fn insert(&mut self, x: T) -> bool {
         if self.len() >= THRESHOLD {
             if let Err(i) = self.vec.binary_search(&x) {
                 self.vec.insert(i, x);
+                return true;
             }
         } else if !self.vec.contains(&x) {
             self.vec.push(x);
             if self.vec.len() == THRESHOLD {
                 self.vec.sort_unstable();
+                return true;
             }
         }
+        false
     }
 
-    fn remove(&mut self, x: T) {
+    fn remove(&mut self, x: T) -> bool {
         if self.len() >= THRESHOLD {
             if let Ok(i) = self.vec.binary_search(&x) {
                 self.vec.remove(i);
+                return true;
             }
         } else if let Some(i) = self.vec.iter().position(|y| y == &x) {
             self.vec.swap_remove(i);
+            return true;
         }
+        false
     }
 
     fn insert_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
-        self.reserve(it.len());
+        // self.reserve(it.len());
         if self.len() + it.len() >= THRESHOLD {
             self.vec.extend(it);
             self.vec.sort_unstable();
@@ -81,18 +87,27 @@ impl<T: Ord + Copy, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, TH
     }
 
     #[inline]
-    fn reserve(&mut self, additional: usize) {
-        self.vec.reserve(additional);
-        // self.vec.reserve_exact(additional);
-    }
-
-    #[inline]
-    fn shrink(&mut self) {
+    fn remove_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
+        for x in it {
+            self.remove(x);
+        }
+        // self.shrink();
         self.vec.shrink_to_fit();
     }
+
+    // #[inline]
+    // fn reserve(&mut self, additional: usize) {
+    //     self.vec.reserve(additional);
+    //     // self.vec.reserve_exact(additional);
+    // }
+
+    // #[inline]
+    // fn shrink(&mut self) {
+    //     self.vec.shrink_to_fit();
+    // }
 }
 
-// fn dedup_in_place<T: Ord + Copy>(v: &mut Vec<T>, mid: usize) {
+// fn dedup_in_place<T: Ord>(v: &mut Vec<T>, mid: usize) {
 //     v.dedup()
 //     let (mut i, mut j) = (a.start, b.start);
 //     while i < a.end && j < b.end {
@@ -120,7 +135,7 @@ impl<T: Ord + Copy, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, TH
 //     v
 // }
 
-// fn merge_sorted_vec<T: Ord + Copy>(v1: &[T], v2: &[T]) -> Vec<T> {
+// fn merge_sorted_vec<T: Ord>(v1: &[T], v2: &[T]) -> Vec<T> {
 //     let mut v = Vec::with_capacity(v1.len() + v2.len());
 //     let (mut i, mut j) = (0, 0);
 //     while i < v1.len() && j < v2.len() {
