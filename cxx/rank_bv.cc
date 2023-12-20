@@ -7,7 +7,7 @@ RankBV::~RankBV() {}
 size_t RankBV::size() const { return bv.size(); }
 
 bool RankBV::get(size_t index) const {
-  return bv.bitvector()[index / 64] >> (index % 64);
+  return bv.bitvector()[index / 64] & (1ULL << (index % 64));
 }
 
 bool RankBV::set(size_t index) const { return bv.set(index); }
