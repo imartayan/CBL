@@ -4,7 +4,7 @@ use core::cmp::Ordering;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CompactInt<const BYTES: usize>([u8; BYTES]);
 
