@@ -22,10 +22,9 @@ impl<const BITS: usize, const PREFIX_BITS: usize> BitWordSet<BITS, PREFIX_BITS>
 where
     [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
 {
-    pub const BITS: usize = BITS;
-    pub const PREFIX_BITS: usize = PREFIX_BITS;
-    pub const SUFFIX_BITS: usize = Self::BITS.saturating_sub(Self::PREFIX_BITS);
-    pub const SUFFIX_BYTES: usize = Self::SUFFIX_BITS.div_ceil(8);
+    const BITS: usize = BITS;
+    const PREFIX_BITS: usize = PREFIX_BITS;
+    const SUFFIX_BITS: usize = Self::BITS.saturating_sub(Self::PREFIX_BITS);
     const CHUNK_SIZE: usize = 1024;
 
     pub fn new() -> Self {
@@ -44,6 +43,7 @@ where
             .sum()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.prefixes.count() == 0
     }
@@ -64,6 +64,7 @@ where
         )
     }
 
+    #[inline]
     pub fn contains<T: PrimInt + Unsigned + AsPrimitive<usize>>(&self, word: T) -> bool {
         let (prefix, suffix) = Self::split_prefix_suffix(word);
         if !self.prefixes.contains(prefix) {
@@ -79,12 +80,20 @@ where
         let mut absent = self.prefixes.insert(prefix);
         let rank = self.prefixes.rank(prefix);
         if absent {
-            let id = self.suffix_containers.len() as u32;
-            self.suffix_containers.push(SemiSortedVec::<
-                CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
-                32,
-            >::new_with_one(suffix));
-            self.tiered.insert(rank, id);
+            match self.empty_containers.pop() {
+                Some(id) => {
+                    self.suffix_containers[id].insert(suffix);
+                    self.tiered.insert(rank, id as u32);
+                }
+                None => {
+                    let id = self.suffix_containers.len();
+                    self.suffix_containers.push(SemiSortedVec::<
+                        CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
+                        32,
+                    >::new_with_one(suffix));
+                    self.tiered.insert(rank, id as u32);
+                }
+            };
         } else {
             let id = self.tiered.get(rank) as usize;
             absent = self.suffix_containers[id].insert(suffix);
@@ -100,7 +109,7 @@ where
             let id = self.tiered.get(rank) as usize;
             present = self.suffix_containers[id].remove(suffix);
             if self.suffix_containers[id].is_empty() {
-                self.suffix_containers[id] = SemiSortedVec::new();
+                // self.suffix_containers[id] = SemiSortedVec::new();
                 self.empty_containers.push(id);
                 self.tiered.remove(rank);
                 self.prefixes.remove(prefix);
@@ -120,13 +129,21 @@ where
                 let absent = self.prefixes.insert(prefix);
                 let rank = self.prefixes.rank(prefix);
                 let id = if absent {
-                    let id = self.suffix_containers.len() as u32;
-                    self.tiered.insert(rank, id);
-                    self.suffix_containers.push(SemiSortedVec::<
-                        CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
-                        32,
-                    >::new());
-                    id as usize
+                    match self.empty_containers.pop() {
+                        Some(id) => {
+                            self.tiered.insert(rank, id as u32);
+                            id
+                        }
+                        None => {
+                            let id = self.suffix_containers.len();
+                            self.suffix_containers.push(SemiSortedVec::<
+                                CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
+                                32,
+                            >::new());
+                            self.tiered.insert(rank, id as u32);
+                            id
+                        }
+                    }
                 } else {
                     self.tiered.get(rank) as usize
                 };
@@ -136,19 +153,6 @@ where
                     self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
                 }
             }
-            // for (prefix, group) in self.get_suffix_groups(seq).into_iter() {
-            //     let absent = self.prefixes.insert(prefix);
-            //     let rank = self.prefixes.rank(prefix);
-            //     let id = if absent {
-            //         let id = self.suffix_containers.len() as $ST;
-            //         self.tiered.insert(rank, id);
-            //         self.suffix_containers.push(SuffixContainer::new());
-            //         id as usize
-            //     } else {
-            //         self.tiered.get(rank) as usize
-            //     };
-            //     self.suffix_containers[id].insert_iter(group.into_iter().map(|(_, suffix)| suffix));
-            // }
         }
     }
 
@@ -170,7 +174,7 @@ where
                             .remove_iter(group.iter().map(|&(_, suffix)| suffix));
                     }
                     if self.suffix_containers[id].is_empty() {
-                        self.suffix_containers[id] = SemiSortedVec::new();
+                        // self.suffix_containers[id] = SemiSortedVec::new();
                         self.empty_containers.push(id);
                         self.tiered.remove(rank);
                         self.prefixes.remove(prefix);
@@ -180,10 +184,7 @@ where
         }
     }
 
-    // pub fn iter(&self) {
-    //     todo!()
-    // }
-
+    #[inline]
     pub fn prefix_load(&self) -> f64 {
         self.tiered.len() as f64 / (1 << Self::PREFIX_BITS) as f64
     }
@@ -253,13 +254,12 @@ mod tests {
             assert!(!set.contains(i));
         }
         for &i in positive.iter() {
-            // assert_eq!(set.count(), N - i / 2);
             set.remove(i);
         }
         for &i in positive.iter() {
             assert!(!set.contains(i));
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 
     #[test]
@@ -277,6 +277,6 @@ mod tests {
         for i in (0..(2 * N)).step_by(2) {
             assert!(!set.contains(i));
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 }

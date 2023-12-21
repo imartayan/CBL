@@ -22,11 +22,9 @@ where
     [(); PREFIX_BITS.div_ceil(8)]:,
     [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
 {
-    pub const BITS: usize = BITS;
-    pub const PREFIX_BITS: usize = PREFIX_BITS;
-    pub const SUFFIX_BITS: usize = Self::BITS.saturating_sub(Self::PREFIX_BITS);
-    pub const PREFIX_BYTES: usize = Self::PREFIX_BITS.div_ceil(8);
-    pub const SUFFIX_BYTES: usize = Self::SUFFIX_BITS.div_ceil(8);
+    const BITS: usize = BITS;
+    const PREFIX_BITS: usize = PREFIX_BITS;
+    const SUFFIX_BITS: usize = Self::BITS.saturating_sub(Self::PREFIX_BITS);
     const CHUNK_SIZE: usize = 1024;
 
     pub fn new() -> Self {
@@ -42,12 +40,13 @@ where
             .sum()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.containers.is_empty()
     }
 
     #[inline]
-    pub fn split_prefix_suffix<T: PrimInt + Unsigned>(
+    fn split_prefix_suffix<T: PrimInt + Unsigned>(
         word: T,
     ) -> (
         CompactInt<{ PREFIX_BITS.div_ceil(8) }>,
@@ -62,6 +61,7 @@ where
         )
     }
 
+    #[inline]
     pub fn contains<T: PrimInt + Unsigned>(&self, word: T) -> bool {
         let (prefix, suffix) = Self::split_prefix_suffix(word);
         match self.containers.get(&prefix) {
@@ -153,6 +153,7 @@ where
     //     todo!()
     // }
 
+    #[inline]
     pub fn prefix_load(&self) -> f64 {
         self.containers.len() as f64 / (1 << Self::PREFIX_BITS) as f64
     }
@@ -219,13 +220,12 @@ mod tests {
             assert!(!set.contains(i));
         }
         for &i in positive.iter() {
-            // assert_eq!(set.count(), N - i / 2);
             set.remove(i);
         }
         for &i in positive.iter() {
             assert!(!set.contains(i));
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 
     #[test]
@@ -243,6 +243,6 @@ mod tests {
         for i in (0..(2 * N)).step_by(2) {
             assert!(!set.contains(i));
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 }
