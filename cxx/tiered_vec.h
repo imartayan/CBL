@@ -39,6 +39,7 @@ using Layer32 =
     void remove(size_t idx) const;                                             \
     void insert_sorted(T elem) const;                                          \
     bool contains_sorted(T elem) const;                                        \
+    size_t index_sorted(T elem) const;                                         \
                                                                                \
   private:                                                                     \
     mutable Seq::Tiered<T, Layer##W> tiered;                                   \

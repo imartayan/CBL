@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub use cxx::UniquePtr;
+use std::fmt::Debug;
 
 #[cxx::bridge]
 mod tv32 {
@@ -18,6 +19,7 @@ mod tv32 {
         fn remove(&self, idx: usize);
         fn insert_sorted(&self, elem: u32);
         fn contains_sorted(&self, elem: u32) -> bool;
+        fn index_sorted(&self, elem: u32) -> usize;
     }
 }
 pub use tv32::*;
@@ -38,9 +40,16 @@ mod tv28 {
         fn remove(&self, idx: usize);
         fn insert_sorted(&self, elem: u32);
         fn contains_sorted(&self, elem: u32) -> bool;
+        fn index_sorted(&self, elem: u32) -> usize;
     }
 }
 pub use tv28::*;
+
+impl Debug for TieredVec28 {
+    fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        Ok(())
+    }
+}
 
 #[cxx::bridge]
 mod tv24 {
@@ -58,6 +67,7 @@ mod tv24 {
         fn remove(&self, idx: usize);
         fn insert_sorted(&self, elem: u32);
         fn contains_sorted(&self, elem: u32) -> bool;
+        fn index_sorted(&self, elem: u32) -> usize;
     }
 }
 pub use tv24::*;
@@ -78,6 +88,7 @@ mod tv20 {
         fn remove(&self, idx: usize);
         fn insert_sorted(&self, elem: u32);
         fn contains_sorted(&self, elem: u32) -> bool;
+        fn index_sorted(&self, elem: u32) -> usize;
     }
 }
 pub use tv20::*;
@@ -98,6 +109,38 @@ mod tv16 {
         fn remove(&self, idx: usize);
         fn insert_sorted(&self, elem: u16);
         fn contains_sorted(&self, elem: u16) -> bool;
+        fn index_sorted(&self, elem: u16) -> usize;
     }
 }
 pub use tv16::*;
+
+// use paste::paste;
+
+// macro_rules! ffi_tv {
+//     ($size:literal, $T:ty) => {
+//         paste! {
+//             // #[cxx::bridge]
+//             mod [<tv $size>] {
+//                 unsafe extern "C++" {
+//                     include!("CBL/cxx/tiered_vec.h");
+
+//                     type [<TieredVec $size>];
+//                     fn [<new_tiered_vec_ $size>]() -> UniquePtr<[<TieredVec $size>]>;
+//                     fn len(&self) -> usize;
+//                     fn is_empty(&self) -> bool;
+//                     fn capacity(&self) -> usize;
+//                     fn get(&self, idx: usize) -> $T;
+//                     fn update(&self, idx: usize, elem: $T) -> $T;
+//                     fn insert(&self, idx: usize, elem: $T);
+//                     fn remove(&self, idx: usize);
+//                     fn insert_sorted(&self, elem: $T);
+//                     fn contains_sorted(&self, elem: $T) -> bool;
+//                 }
+//             }
+
+//             pub use [<tv $size>]::*;
+//         }
+//     };
+// }
+
+// ffi_tv!(28, u32);

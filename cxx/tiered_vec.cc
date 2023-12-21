@@ -34,6 +34,22 @@
     }                                                                          \
     return false;                                                              \
   }                                                                            \
+  size_t TieredVec##W::index_sorted(T elem) const {                            \
+    size_t left = 0, right = tiered.size;                                      \
+    while (left < right) {                                                     \
+      size_t mid = (left + right) / 2;                                         \
+      T elem_mid = tiered[mid];                                                \
+      if (elem < elem_mid) {                                                   \
+        right = mid;                                                           \
+      } else {                                                                 \
+        if (elem == elem_mid) {                                                \
+          return mid;                                                          \
+        }                                                                      \
+        left = mid + 1;                                                        \
+      }                                                                        \
+    }                                                                          \
+    return tiered.size;                                                        \
+  }                                                                            \
   unique_ptr<TieredVec##W> new_tiered_vec_##W() {                              \
     return unique_ptr<TieredVec##W>(new TieredVec##W());                       \
   }
