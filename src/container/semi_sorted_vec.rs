@@ -92,7 +92,7 @@ impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD
             self.remove(x);
         }
         // self.shrink();
-        self.vec.shrink_to_fit();
+        // self.vec.shrink_to_fit();
     }
 
     // #[inline]

@@ -58,7 +58,7 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
             self.remove(x);
         }
         // self.shrink();
-        self.vec.shrink_to_fit();
+        // self.vec.shrink_to_fit();
     }
 
     // #[inline]
