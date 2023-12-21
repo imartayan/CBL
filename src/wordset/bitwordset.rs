@@ -7,7 +7,7 @@ use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
 use std::collections::{btree_map::Entry::Vacant, BTreeMap};
 
-pub struct DynWordSet<const BITS: usize, const PREFIX_BITS: usize = 24>
+pub struct BitWordSet<const BITS: usize, const PREFIX_BITS: usize = 24>
 where
     [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
 {
@@ -18,7 +18,7 @@ where
     empty_containers: Vec<usize>,
 }
 
-impl<const BITS: usize, const PREFIX_BITS: usize> DynWordSet<BITS, PREFIX_BITS>
+impl<const BITS: usize, const PREFIX_BITS: usize> BitWordSet<BITS, PREFIX_BITS>
 where
     [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
 {
@@ -217,7 +217,7 @@ where
     }
 }
 
-impl<const BITS: usize, const PREFIX_BITS: usize> Default for DynWordSet<BITS, PREFIX_BITS>
+impl<const BITS: usize, const PREFIX_BITS: usize> Default for BitWordSet<BITS, PREFIX_BITS>
 where
     [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
 {
@@ -229,27 +229,34 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::seq::SliceRandom;
+    use rand::thread_rng;
 
     const N: usize = 1_000_000;
     const BITS: usize = 32;
 
     #[test]
     fn test_insert_contains_remove() {
-        let mut set = DynWordSet::<BITS>::new();
-        for i in (0..(2 * N)).step_by(2) {
+        let mut positive: Vec<_> = (0..(2 * N)).step_by(2).collect();
+        let mut negative: Vec<_> = (0..(2 * N)).skip(1).step_by(2).collect();
+        let mut rng = thread_rng();
+        positive.shuffle(&mut rng);
+        negative.shuffle(&mut rng);
+        let mut set = BitWordSet::<BITS>::new();
+        for &i in positive.iter() {
             set.insert(i);
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in positive.iter() {
             assert!(set.contains(i));
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for &i in negative.iter() {
             assert!(!set.contains(i));
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in positive.iter() {
             // assert_eq!(set.count(), N - i / 2);
             set.remove(i);
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in positive.iter() {
             assert!(!set.contains(i));
         }
         // assert!(set.is_empty());
@@ -257,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_batch_operations() {
-        let mut set = DynWordSet::<BITS>::new();
+        let mut set = BitWordSet::<BITS>::new();
         let words: Vec<_> = (0..(2 * N)).step_by(2).collect();
         set.insert_batch(&words);
         for i in (0..(2 * N)).step_by(2) {
