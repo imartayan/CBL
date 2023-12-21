@@ -7,24 +7,22 @@ use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
 use std::collections::{btree_map::Entry::Vacant, BTreeMap};
 
-pub struct BitWordSet<const BITS: usize, const PREFIX_BITS: usize = 24>
+pub struct BitWordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
 where
-    [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
+    [(); SUFFIX_BITS.div_ceil(8)]:,
 {
     prefixes: RankBitContainer,
     tiered: UniquePtr<TieredVec28>,
-    suffix_containers:
-        Vec<SemiSortedVec<CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>, 32>>,
+    suffix_containers: Vec<SemiSortedVec<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>>,
     empty_containers: Vec<usize>,
 }
 
-impl<const BITS: usize, const PREFIX_BITS: usize> BitWordSet<BITS, PREFIX_BITS>
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitWordSet<PREFIX_BITS, SUFFIX_BITS>
 where
-    [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
+    [(); SUFFIX_BITS.div_ceil(8)]:,
 {
-    const BITS: usize = BITS;
     const PREFIX_BITS: usize = PREFIX_BITS;
-    const SUFFIX_BITS: usize = Self::BITS.saturating_sub(Self::PREFIX_BITS);
+    const SUFFIX_BITS: usize = SUFFIX_BITS;
     const CHUNK_SIZE: usize = 1024;
 
     pub fn new() -> Self {
@@ -51,16 +49,11 @@ where
     #[inline]
     pub fn split_prefix_suffix<T: PrimInt + Unsigned + AsPrimitive<usize>>(
         word: T,
-    ) -> (
-        usize,
-        CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
-    ) {
+    ) -> (usize, CompactInt<{ SUFFIX_BITS.div_ceil(8) }>) {
         let suffix_mask: T = (T::one() << Self::SUFFIX_BITS) - T::one();
         (
             (word >> Self::SUFFIX_BITS).as_(),
-            CompactInt::<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>::from_int(
-                word & suffix_mask,
-            ),
+            CompactInt::<{ SUFFIX_BITS.div_ceil(8) }>::from_int(word & suffix_mask),
         )
     }
 
@@ -88,7 +81,7 @@ where
                 None => {
                     let id = self.suffix_containers.len();
                     self.suffix_containers.push(SemiSortedVec::<
-                        CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
+                        CompactInt<{ SUFFIX_BITS.div_ceil(8) }>,
                         32,
                     >::new_with_one(suffix));
                     self.tiered.insert(rank, id as u32);
@@ -137,7 +130,7 @@ where
                         None => {
                             let id = self.suffix_containers.len();
                             self.suffix_containers.push(SemiSortedVec::<
-                                CompactInt<{ BITS.saturating_sub(PREFIX_BITS).div_ceil(8) }>,
+                                CompactInt<{ SUFFIX_BITS.div_ceil(8) }>,
                                 32,
                             >::new());
                             self.tiered.insert(rank, id as u32);
@@ -218,9 +211,10 @@ where
     }
 }
 
-impl<const BITS: usize, const PREFIX_BITS: usize> Default for BitWordSet<BITS, PREFIX_BITS>
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Default
+    for BitWordSet<PREFIX_BITS, SUFFIX_BITS>
 where
-    [(); BITS.saturating_sub(PREFIX_BITS).div_ceil(8)]:,
+    [(); SUFFIX_BITS.div_ceil(8)]:,
 {
     fn default() -> Self {
         Self::new()
@@ -234,7 +228,8 @@ mod tests {
     use rand::thread_rng;
 
     const N: usize = 1_000_000;
-    const BITS: usize = 32;
+    const PREFIX_BITS: usize = 24;
+    const SUFFIX_BITS: usize = 8;
 
     #[test]
     fn test_insert_contains_remove() {
@@ -243,7 +238,7 @@ mod tests {
         let mut rng = thread_rng();
         positive.shuffle(&mut rng);
         negative.shuffle(&mut rng);
-        let mut set = BitWordSet::<BITS>::new();
+        let mut set = BitWordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
         for &i in positive.iter() {
             set.insert(i);
         }
@@ -264,7 +259,7 @@ mod tests {
 
     #[test]
     fn test_batch_operations() {
-        let mut set = BitWordSet::<BITS>::new();
+        let mut set = BitWordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
         let words: Vec<_> = (0..(2 * N)).step_by(2).collect();
         set.insert_batch(&words);
         for i in (0..(2 * N)).step_by(2) {
