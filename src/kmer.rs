@@ -1,9 +1,11 @@
 use core::fmt::{Binary, Display};
 use core::hash::Hash;
 use core::iter::FilterMap;
+use num_traits::cast::AsPrimitive;
 use num_traits::int::PrimInt;
+use num_traits::sign::Unsigned;
 
-pub trait Base: PrimInt + Display + Binary {
+pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     const BASE_MASK: Self;
     fn from_nuc(b: &u8) -> Option<Self>;
     fn to_nuc(self) -> u8;
@@ -57,6 +59,13 @@ pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
     #[inline]
     fn from_bases_iter<I: Iterator<Item = T>>(bases: I) -> Self {
         bases.take(K).fold(Self::new(), |s, base| s.extend(base))
+        // Self::from_int(
+        //     bases
+        //         .take(K)
+        //         .enumerate()
+        //         .map(|(i, base)| base << (2 * (K - 1 - i)))
+        //         .sum(),
+        // )
     }
     #[inline]
     fn from_bases(bases: &[T]) -> Self {
@@ -281,6 +290,19 @@ impl<const K: usize> RevComp for RawKmer<K, u128> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_kmer_from_nucs() {
+        const K: usize = 31;
+        let seq = [b'G'; 1000];
+        let mut _res = 0;
+        for _ in 0..100000 {
+            for nucs in seq.windows(31) {
+                let kmer = RawKmer::<K, u64>::from_nucs(nucs);
+                _res ^= kmer.to_int();
+            }
+        }
+        assert_eq!(_res, 0);
+    }
     #[test]
     fn test_rc_8() {
         let kmer = RawKmer::<4, u8>::from_nucs(b"ATCG");
