@@ -1,4 +1,4 @@
-mod minimizer;
+pub mod minimizer;
 pub mod queue;
 pub mod rank;
 
