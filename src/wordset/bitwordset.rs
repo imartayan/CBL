@@ -23,7 +23,6 @@ where
 {
     const PREFIX_BITS: usize = PREFIX_BITS;
     const SUFFIX_BITS: usize = SUFFIX_BITS;
-    const CHUNK_SIZE: usize = 1024;
 
     pub fn new() -> Self {
         Self {
@@ -112,66 +111,61 @@ where
     }
 
     pub fn insert_batch<T: PrimInt + Unsigned + AsPrimitive<usize>>(&mut self, words: &[T]) {
-        for chunk in words.chunks(Self::CHUNK_SIZE) {
-            let prefixes_suffixes: Vec<_> = chunk
-                .iter()
-                .map(|&word| Self::split_prefix_suffix(word))
-                .collect();
-            for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
-                let prefix = group[0].0;
-                let absent = self.prefixes.insert(prefix);
-                let rank = self.prefixes.rank(prefix);
-                let id = if absent {
-                    match self.empty_containers.pop() {
-                        Some(id) => {
-                            self.tiered.insert(rank, id as u32);
-                            id
-                        }
-                        None => {
-                            let id = self.suffix_containers.len();
-                            self.suffix_containers.push(SemiSortedVec::<
-                                CompactInt<{ SUFFIX_BITS.div_ceil(8) }>,
-                                32,
-                            >::new());
-                            self.tiered.insert(rank, id as u32);
-                            id
-                        }
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            let absent = self.prefixes.insert(prefix);
+            let rank = self.prefixes.rank(prefix);
+            let id = if absent {
+                match self.empty_containers.pop() {
+                    Some(id) => {
+                        self.tiered.insert(rank, id as u32);
+                        id
                     }
-                } else {
-                    self.tiered.get(rank) as usize
-                };
-                if group.len() == 1 {
-                    self.suffix_containers[id].insert(group[0].1);
-                } else {
-                    self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
+                    None => {
+                        let id = self.suffix_containers.len();
+                        self.suffix_containers
+                            .push(
+                                SemiSortedVec::<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>::new(),
+                            );
+                        self.tiered.insert(rank, id as u32);
+                        id
+                    }
                 }
+            } else {
+                self.tiered.get(rank) as usize
+            };
+            if group.len() == 1 {
+                self.suffix_containers[id].insert(group[0].1);
+            } else {
+                self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
             }
         }
     }
 
     pub fn remove_batch<T: PrimInt + Unsigned + AsPrimitive<usize>>(&mut self, words: &[T]) {
-        for chunk in words.chunks(Self::CHUNK_SIZE) {
-            let prefixes_suffixes: Vec<_> = chunk
-                .iter()
-                .map(|&word| Self::split_prefix_suffix(word))
-                .collect();
-            for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
-                let prefix = group[0].0;
-                if self.prefixes.contains(prefix) {
-                    let rank = self.prefixes.rank(prefix);
-                    let id = self.tiered.get(rank) as usize;
-                    if group.len() == 1 {
-                        self.suffix_containers[id].remove(group[0].1);
-                    } else {
-                        self.suffix_containers[id]
-                            .remove_iter(group.iter().map(|&(_, suffix)| suffix));
-                    }
-                    if self.suffix_containers[id].is_empty() {
-                        // self.suffix_containers[id] = SemiSortedVec::new();
-                        self.empty_containers.push(id);
-                        self.tiered.remove(rank);
-                        self.prefixes.remove(prefix);
-                    }
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            if self.prefixes.contains(prefix) {
+                let rank = self.prefixes.rank(prefix);
+                let id = self.tiered.get(rank) as usize;
+                if group.len() == 1 {
+                    self.suffix_containers[id].remove(group[0].1);
+                } else {
+                    self.suffix_containers[id].remove_iter(group.iter().map(|&(_, suffix)| suffix));
+                }
+                if self.suffix_containers[id].is_empty() {
+                    // self.suffix_containers[id] = SemiSortedVec::new();
+                    self.empty_containers.push(id);
+                    self.tiered.remove(rank);
+                    self.prefixes.remove(prefix);
                 }
             }
         }

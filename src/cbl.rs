@@ -1,6 +1,7 @@
 use crate::kmer::{Base, Kmer, RawKmer};
-use crate::necklace::queue::{necklace_pos, NecklaceQueue};
+use crate::necklace::{necklace_pos, queue::NecklaceQueue};
 use crate::wordset::*;
+use core::cmp::min;
 use std::collections::BTreeMap;
 
 pub struct CBL<const K: usize, KT: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
@@ -29,6 +30,7 @@ macro_rules! impl_cbl {
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
             const KMER_BITS: usize = 2 * K;
+            const CHUNK_SIZE: usize = 2048;
 
             pub fn new() -> Self {
                 Self {
@@ -69,6 +71,13 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            fn get_seq_chunks(seq: &'_ [u8]) -> impl Iterator<Item = &'_ [u8]> {
+                (0..(seq.len() - K + 1))
+                    .step_by(Self::CHUNK_SIZE)
+                    .map(|start| &seq[start..min(start + Self::CHUNK_SIZE + K - 1, seq.len())])
+            }
+
+            #[inline]
             fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$KT> {
                 let mut res = Vec::with_capacity(seq.len() - K + 1);
                 let kmer = RawKmer::<K, $KT>::from_nucs(&seq[..K]);
@@ -86,15 +95,19 @@ macro_rules! impl_cbl {
             #[inline]
             pub fn insert_seq(&mut self, seq: &[u8]) {
                 assert!(seq.len() >= K);
-                let words = self.get_seq_words(seq);
-                self.wordset.insert_batch(&words);
+                for chunk in Self::get_seq_chunks(seq) {
+                    let words = self.get_seq_words(chunk);
+                    self.wordset.insert_batch(&words);
+                }
             }
 
             #[inline]
             pub fn remove_seq(&mut self, seq: &[u8]) {
                 assert!(seq.len() >= K);
-                let words = self.get_seq_words(seq);
-                self.wordset.remove_batch(&words);
+                for chunk in Self::get_seq_chunks(seq) {
+                    let words = self.get_seq_words(chunk);
+                    self.wordset.remove_batch(&words);
+                }
             }
 
             #[inline]
@@ -132,3 +145,73 @@ macro_rules! impl_cbl {
 impl_cbl!(u32);
 impl_cbl!(u64);
 impl_cbl!(u128);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::thread_rng;
+    use rand::Rng;
+
+    const K: usize = 59;
+    type T = u128;
+    type KmerT = RawKmer<K, T>;
+    const N: usize = 1_000_000;
+
+    #[test]
+    fn test_insert_contains_remove() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            set.insert(kmer);
+        }
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                set.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+        }
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            set.remove(kmer);
+        }
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+        }
+        // assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_batch_operations() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        set.insert_seq(&nucs);
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                set.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+        }
+        set.remove_seq(&nucs);
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+        }
+        // assert!(set.is_empty());
+    }
+}

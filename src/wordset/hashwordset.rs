@@ -24,7 +24,6 @@ where
 {
     const PREFIX_BITS: usize = PREFIX_BITS;
     const SUFFIX_BITS: usize = SUFFIX_BITS;
-    const CHUNK_SIZE: usize = 1024;
 
     pub fn new() -> Self {
         Self {
@@ -98,49 +97,43 @@ where
     }
 
     pub fn insert_batch<T: PrimInt + Unsigned>(&mut self, words: &[T]) {
-        for chunk in words.chunks(Self::CHUNK_SIZE) {
-            let prefixes_suffixes: Vec<_> = chunk
-                .iter()
-                .map(|&word| Self::split_prefix_suffix(word))
-                .collect();
-            for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
-                let prefix = group[0].0;
-                let container = match self.containers.entry(prefix) {
-                    Entry::Vacant(entry) => entry
-                        .insert(
-                            SemiSortedVec::<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>::new(),
-                        ),
-                    Entry::Occupied(entry) => entry.into_mut(),
-                };
-                if group.len() == 1 {
-                    container.insert(group[0].1);
-                } else {
-                    container.insert_iter(group.iter().map(|&(_, suffix)| suffix));
-                }
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            let container = match self.containers.entry(prefix) {
+                Entry::Vacant(entry) => entry
+                    .insert(SemiSortedVec::<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>::new()),
+                Entry::Occupied(entry) => entry.into_mut(),
+            };
+            if group.len() == 1 {
+                container.insert(group[0].1);
+            } else {
+                container.insert_iter(group.iter().map(|&(_, suffix)| suffix));
             }
         }
     }
 
     pub fn remove_batch<T: PrimInt + Unsigned>(&mut self, words: &[T]) {
-        for chunk in words.chunks(Self::CHUNK_SIZE) {
-            let prefixes_suffixes: Vec<_> = chunk
-                .iter()
-                .map(|&word| Self::split_prefix_suffix(word))
-                .collect();
-            for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
-                let prefix = group[0].0;
-                match self.containers.entry(prefix) {
-                    Entry::Vacant(_) => (),
-                    Entry::Occupied(mut entry) => {
-                        let container = entry.get_mut();
-                        if group.len() == 1 {
-                            container.remove(group[0].1);
-                        } else {
-                            container.remove_iter(group.iter().map(|&(_, suffix)| suffix));
-                        }
-                        if container.is_empty() {
-                            entry.remove();
-                        }
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            match self.containers.entry(prefix) {
+                Entry::Vacant(_) => (),
+                Entry::Occupied(mut entry) => {
+                    let container = entry.get_mut();
+                    if group.len() == 1 {
+                        container.remove(group[0].1);
+                    } else {
+                        container.remove_iter(group.iter().map(|&(_, suffix)| suffix));
+                    }
+                    if container.is_empty() {
+                        entry.remove();
                     }
                 }
             }
