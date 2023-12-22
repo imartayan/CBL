@@ -44,6 +44,11 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            pub fn is_empty(&self) -> bool {
+                self.wordset.is_empty()
+            }
+
+            #[inline]
             fn merge_necklace_pos(necklace: $KT, pos: usize) -> $KT {
                 necklace * Self::KMER_BITS as $KT + pos as $KT
                 // (necklace << P) | (pos as $KT)
@@ -196,7 +201,7 @@ mod tests {
                 kmer.to_int()
             );
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 
     #[test]
@@ -217,6 +222,6 @@ mod tests {
                 kmer.to_int()
             );
         }
-        // assert!(set.is_empty());
+        assert!(set.is_empty());
     }
 }
