@@ -1,8 +1,7 @@
+use cbl::cbl::*;
 use cbl::kmer::*;
 use cbl::reads::*;
-use cbl::CBL;
 use clap::Parser;
-use core::cmp::min;
 use std::time::Instant;
 
 // Loads runtime-provided constants for which declarations
@@ -24,18 +23,15 @@ fn main() {
     let args = Args::parse();
     let input_filename = args.input.as_str();
 
-    let mut cbl = CBL::<K, KT, u32>::new();
+    let mut cbl = CBL::<K, KT>::new();
     let reads = Fasta::from_file(input_filename);
 
     reads.process_rec(|rec| {
         let seq = rec.seq();
-        let chunk_size = 10000;
         let n = (seq.len() - K + 1) as u128;
 
         let now = Instant::now();
-        for start in (0..(seq.len() - K + 1)).step_by(chunk_size) {
-            cbl.insert_seq(&seq[start..(min(start + chunk_size + K - 1, seq.len()))]);
-        }
+        cbl.insert_seq(seq);
         let elapsed = now.elapsed().as_nanos();
         println!("{} ns/insertion", elapsed / n);
 
@@ -48,22 +44,19 @@ fn main() {
             }
         }
 
-        let mut _res = true;
         let now = Instant::now();
-        for start in (0..(seq.len() - K + 1)).step_by(chunk_size) {
-            for nucs in seq[start..(min(start + chunk_size + K - 1, seq.len()))].windows(K) {
-                let kmer = RawKmer::<K, KT>::from_nucs(nucs);
-                _res ^= cbl.contains(kmer);
-            }
-            // _res ^= cbl.contains_seq(&seq[start..(min(start + chunk_size + K - 1, seq.len()))]);
+        for (i, kmer) in RawKmer::iter_from_nucs(seq.iter()).enumerate() {
+            assert!(
+                cbl.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
         }
         let elapsed = now.elapsed().as_nanos();
         println!("{} ns/membership", elapsed / n);
 
         let now = Instant::now();
-        for start in (0..(seq.len() - K + 1)).step_by(chunk_size) {
-            cbl.remove_seq(&seq[start..(min(start + chunk_size + K - 1, seq.len()))]);
-        }
+        cbl.remove_seq(seq);
         let elapsed = now.elapsed().as_nanos();
         println!("{} ns/deletion", elapsed / n);
     });
