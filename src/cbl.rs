@@ -93,6 +93,17 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            pub fn contains_seq(&mut self, seq: &[u8]) -> Vec<bool> {
+                assert!(seq.len() >= K);
+                let mut res = Vec::with_capacity(seq.len() - K + 1);
+                for chunk in Self::get_seq_chunks(seq) {
+                    let words = self.get_seq_words(chunk);
+                    res.append(&mut self.wordset.contains_batch(&words));
+                }
+                res
+            }
+
+            #[inline]
             pub fn insert_seq(&mut self, seq: &[u8]) {
                 assert!(seq.len() >= K);
                 for chunk in Self::get_seq_chunks(seq) {
@@ -197,13 +208,7 @@ mod tests {
         }
         let mut set = CBL::<K, T>::new();
         set.insert_seq(&nucs);
-        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
-            assert!(
-                set.contains(kmer),
-                "kmer {i} false negative: {:0b}",
-                kmer.to_int()
-            );
-        }
+        assert!(set.contains_seq(&nucs).iter().all(|&b| b));
         set.remove_seq(&nucs);
         for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
             assert!(
