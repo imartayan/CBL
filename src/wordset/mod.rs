@@ -1,5 +1,5 @@
-mod bitwordset;
-mod hashwordset;
+mod bit_wordset;
+mod hash_wordset;
 
-pub use bitwordset::*;
-pub use hashwordset::*;
+pub use bit_wordset::*;
+pub use hash_wordset::*;
