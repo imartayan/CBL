@@ -110,6 +110,30 @@ where
         present
     }
 
+    pub fn contains_batch<T: PrimInt + Unsigned + AsPrimitive<usize>>(
+        &mut self,
+        words: &[T],
+    ) -> Vec<bool> {
+        let mut res = Vec::with_capacity(words.len());
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            if !self.prefixes.contains(prefix) {
+                res.resize(res.len() + group.len(), false);
+                continue;
+            }
+            let rank = self.prefixes.rank(prefix);
+            let id = self.tiered.get(rank) as usize;
+            for &(_, suffix) in group.iter() {
+                res.push(self.suffix_containers[id].contains(suffix));
+            }
+        }
+        res
+    }
+
     pub fn insert_batch<T: PrimInt + Unsigned + AsPrimitive<usize>>(&mut self, words: &[T]) {
         let prefixes_suffixes: Vec<_> = words
             .iter()
@@ -256,9 +280,7 @@ mod tests {
         let mut set = BitWordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
         let words: Vec<_> = (0..(2 * N)).step_by(2).collect();
         set.insert_batch(&words);
-        for i in (0..(2 * N)).step_by(2) {
-            assert!(set.contains(i));
-        }
+        assert!(set.contains_batch(&words).iter().all(|&b| b));
         for i in (0..(2 * N)).skip(1).step_by(2) {
             assert!(!set.contains(i));
         }
