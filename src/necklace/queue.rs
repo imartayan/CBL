@@ -2,20 +2,6 @@ use super::minimizer::LexMinQueue;
 use core::cmp::min;
 use num_traits::int::PrimInt;
 
-pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
-    let mut necklace = word;
-    let mut rot = word;
-    let mut pos = 0;
-    for i in 1..BITS {
-        rot = ((rot & T::one()) << (BITS - 1)) | (rot >> 1);
-        if rot < necklace {
-            necklace = rot;
-            pos = i;
-        }
-    }
-    (necklace, pos)
-}
-
 #[derive(Debug)]
 pub struct NecklaceQueue<const BITS: usize, T: PrimInt, const WIDTH: usize> {
     word: T,
