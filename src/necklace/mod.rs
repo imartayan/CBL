@@ -10,7 +10,7 @@ pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
     let mut necklace = word;
     let mut rot = word;
     let mut pos = 0;
-    for i in 1..BITS {
+    for i in (1..BITS).rev() {
         rot = ((rot & T::one()) << (BITS - 1)) | (rot >> 1);
         if rot < necklace {
             necklace = rot;
@@ -72,3 +72,29 @@ where
 )*}}
 
 impl_necklace_factory!(u8, u16, u32, u64, u128);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::thread_rng;
+    use rand::Rng;
+
+    const N: usize = 1_000_000;
+    const BITS: usize = 31;
+    type T = u32;
+    const M: usize = 9;
+    const WIDTH: usize = BITS - M + 1;
+
+    #[test]
+    fn test_same_necklace() {
+        let mut rng = thread_rng();
+        for _ in 0..N {
+            let word: T = rng.gen::<T>() >> 1;
+            let necklace_queue = NecklaceQueue::<BITS, T, WIDTH>::new_from_word(word);
+            assert_eq!(
+                necklace_pos::<BITS, T>(word),
+                necklace_queue.get_necklace_pos()
+            );
+        }
+    }
+}
