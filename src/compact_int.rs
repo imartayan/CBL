@@ -65,7 +65,13 @@ impl<const BYTES: usize> Default for CompactInt<BYTES> {
 impl<const BYTES: usize> Ord for CompactInt<BYTES> {
     #[inline]
     fn cmp(&self, other: &CompactInt<BYTES>) -> Ordering {
-        other.0.cmp(&self.0)
+        for i in (0..BYTES).rev() {
+            match self.0[i].cmp(&other.0[i]) {
+                Ordering::Equal => (),
+                non_eq => return non_eq,
+            }
+        }
+        Ordering::Equal
     }
 }
 
