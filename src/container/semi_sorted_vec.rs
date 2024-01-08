@@ -1,6 +1,6 @@
 use super::Container;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SemiSortedVec<T: Ord, const THRESHOLD: usize> {
     vec: Vec<T>,
 }
@@ -14,6 +14,24 @@ impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD
     #[inline]
     fn new_with_one(x: T) -> Self {
         Self { vec: vec![x] }
+    }
+
+    #[inline]
+    fn from_vec(mut vec: Vec<T>) -> Self {
+        if vec.len() >= THRESHOLD {
+            vec.sort_unstable();
+        }
+        Self { vec }
+    }
+
+    #[inline]
+    unsafe fn from_vec_unchecked(vec: Vec<T>) -> Self {
+        Self { vec }
+    }
+
+    #[inline]
+    fn to_vec(self) -> Vec<T> {
+        self.vec
     }
 
     #[inline]
@@ -39,8 +57,8 @@ impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD
             self.vec.push(x);
             if self.vec.len() == THRESHOLD {
                 self.vec.sort_unstable();
-                return true;
             }
+            return true;
         }
         false
     }

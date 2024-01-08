@@ -1,6 +1,6 @@
 use super::Container;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PlainVec<T: PartialEq> {
     vec: Vec<T>,
 }
@@ -14,6 +14,21 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
     #[inline]
     fn new_with_one(x: T) -> Self {
         Self { vec: vec![x] }
+    }
+
+    #[inline]
+    fn from_vec(vec: Vec<T>) -> Self {
+        Self { vec }
+    }
+
+    #[inline]
+    unsafe fn from_vec_unchecked(vec: Vec<T>) -> Self {
+        Self { vec }
+    }
+
+    #[inline]
+    fn to_vec(self) -> Vec<T> {
+        self.vec
     }
 
     #[inline]
