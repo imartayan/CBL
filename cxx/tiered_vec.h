@@ -25,29 +25,61 @@ using Layer28 =
 using Layer32 =
     LayerItr<LayerEnd, Layer<32, Layer<64, Layer<64, Layer<64, Layer<512>>>>>>;
 
-#define declTieredVec(W, T)                                                    \
+#define defTieredVec(W, T)                                                     \
   class TieredVec##W {                                                         \
   public:                                                                      \
-    TieredVec##W();                                                            \
-    ~TieredVec##W();                                                           \
-    size_t len() const;                                                        \
-    bool is_empty() const;                                                     \
-    size_t capacity() const;                                                   \
-    T get(size_t idx) const;                                                   \
-    T update(size_t idx, T elem) const;                                        \
-    void insert(size_t idx, T elem) const;                                     \
-    void remove(size_t idx) const;                                             \
-    void insert_sorted(T elem) const;                                          \
-    bool contains_sorted(T elem) const;                                        \
-    size_t index_sorted(T elem) const;                                         \
+    TieredVec##W() {}                                                          \
+    ~TieredVec##W() {}                                                         \
+    size_t len() const { return tiered.size; }                                 \
+    bool is_empty() const { return tiered.size == 0; }                         \
+    size_t capacity() const { return Layer##W::capacity; }                     \
+    T get(size_t idx) const { return tiered[idx]; }                            \
+    T update(size_t idx, T elem) const {                                       \
+      return helper<T, Layer##W>::replace(elem, (size_t)tiered.root, idx,      \
+                                          tiered.info);                        \
+    }                                                                          \
+    void insert(size_t idx, T elem) const { tiered.insert(idx, elem); }        \
+    void remove(size_t idx) const { tiered.remove(idx); }                      \
+    void insert_sorted(T elem) const { tiered.insert_sorted(elem); }           \
+    bool contains_sorted(T elem) const {                                       \
+      size_t left = 0, right = tiered.size;                                    \
+      while (left < right) {                                                   \
+        size_t mid = (left + right) / 2;                                       \
+        T elem_mid = tiered[mid];                                              \
+        if (elem < elem_mid) {                                                 \
+          right = mid;                                                         \
+        } else {                                                               \
+          if (elem == elem_mid) {                                              \
+            return true;                                                       \
+          }                                                                    \
+          left = mid + 1;                                                      \
+        }                                                                      \
+      }                                                                        \
+      return false;                                                            \
+    }                                                                          \
+    size_t index_sorted(T elem) const {                                        \
+      size_t left = 0, right = tiered.size;                                    \
+      while (left < right) {                                                   \
+        size_t mid = (left + right) / 2;                                       \
+        T elem_mid = tiered[mid];                                              \
+        if (elem < elem_mid) {                                                 \
+          right = mid;                                                         \
+        } else {                                                               \
+          if (elem == elem_mid) {                                              \
+            return mid;                                                        \
+          }                                                                    \
+          left = mid + 1;                                                      \
+        }                                                                      \
+      }                                                                        \
+      return tiered.size;                                                      \
+    }                                                                          \
                                                                                \
   private:                                                                     \
     mutable Seq::Tiered<T, Layer##W> tiered;                                   \
-  };                                                                           \
-  unique_ptr<TieredVec##W> new_tiered_vec_##W();
+  };
 
-declTieredVec(16, uint16_t);
-declTieredVec(20, uint32_t);
-declTieredVec(24, uint32_t);
-declTieredVec(28, uint32_t);
-declTieredVec(32, uint32_t);
+defTieredVec(16, uint16_t);
+defTieredVec(20, uint32_t);
+defTieredVec(24, uint32_t);
+defTieredVec(28, uint32_t);
+defTieredVec(32, uint32_t);

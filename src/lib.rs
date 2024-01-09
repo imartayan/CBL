@@ -6,11 +6,10 @@ pub mod bit_container;
 pub mod cbl;
 pub mod compact_int;
 pub mod container;
+pub mod ffi;
 pub mod kmer;
 pub mod necklace;
-pub mod rank_bv;
 pub mod reads;
-pub mod tiered_vec;
 pub mod wordset;
 
 pub use cbl::*;

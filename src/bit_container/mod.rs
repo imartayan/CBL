@@ -1,4 +1,4 @@
-use crate::rank_bv::{new_rank_bv, RankBV, UniquePtr};
+use crate::ffi::{RankBV, UniquePtr, WithinUniquePtr};
 use roaring::RoaringBitmap;
 
 pub trait BitContainer {
@@ -57,7 +57,7 @@ impl BitContainer for RankBitContainer {
     #[inline]
     fn new_with_len(len: usize) -> Self {
         Self {
-            bv: new_rank_bv(1 << len),
+            bv: RankBV::new(1 << len).within_unique_ptr(),
         }
     }
 

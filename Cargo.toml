@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8"
+autocxx = "0.26.0"
 cxx = "1.0"
 itertools = "0.12"
 num-traits = "0.2"
@@ -15,7 +16,11 @@ seq_io = "0.4.0-alpha.0"
 snap = "1.1"
 
 [build-dependencies]
-cxx-build = "1.0"
+autocxx-build = "0.26.0"
+miette = { version = "5", features = [
+    "fancy",
+] } # optional but gives nicer error messages!
+
 
 [dev-dependencies]
 clap = { version = "4.4", features = ["derive"] }

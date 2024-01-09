@@ -1,7 +1,7 @@
 use crate::bit_container::*;
 use crate::compact_int::CompactInt;
 use crate::container::*;
-use crate::tiered_vec::*;
+use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
@@ -27,7 +27,7 @@ where
     pub fn new() -> Self {
         Self {
             prefixes: RankBitContainer::new_with_len(Self::PREFIX_BITS),
-            tiered: new_tiered_vec_28(),
+            tiered: TieredVec28::new().within_unique_ptr(),
             suffix_containers: Vec::new(),
             empty_containers: Vec::new(),
         }
