@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sux/bits/WordDynRankSel.hpp"
-#include "sux/util/FenwickByteL.hpp"
-#include "sux/util/Vector.hpp"
+#include "sux/sux/bits/WordDynRankSel.hpp"
+#include "sux/sux/util/FenwickByteL.hpp"
+#include "sux/sux/util/Vector.hpp"
 
 using namespace std;
 using namespace sux;

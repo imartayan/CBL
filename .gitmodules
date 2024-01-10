@@ -1,0 +1,6 @@
+[submodule "cxx/sux"]
+	path = cxx/sux
+	url = https://github.com/vigna/sux.git
+[submodule "cxx/tiered-vector"]
+	path = cxx/tiered-vector
+	url = https://github.com/mettienne/tiered-vector.git

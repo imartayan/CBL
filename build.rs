@@ -76,6 +76,7 @@ fn build_ffi() -> miette::Result<()> {
     build
         .flag_if_supported("-std=c++17")
         .flag_if_supported("-Wno-unused-parameter")
+        .flag_if_supported("-Wno-#pragma-messages")
         .compile("autocxx-demo"); // arbitrary library name, pick anything
     println!("cargo:rerun-if-changed=src/ffi.rs");
 
