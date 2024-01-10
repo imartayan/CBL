@@ -55,7 +55,7 @@ mod tests {
     use super::*;
 
     type T = usize;
-    const N: usize = 10000;
+    const N: usize = 100;
 
     fn test_container<ContainerT: Container<T>>() {
         let mut container = ContainerT::new();
@@ -79,10 +79,10 @@ mod tests {
         let mut container = ContainerT::new();
         container.insert_iter((0..(2 * N)).step_by(2));
         for i in (0..(2 * N)).step_by(2) {
-            assert!(container.contains(i));
+            assert!(container.contains(i), "false negative {i}");
         }
         for i in (0..(2 * N)).skip(1).step_by(2) {
-            assert!(!container.contains(i));
+            assert!(!container.contains(i), "false positive {i}");
         }
         container.remove_iter((0..(2 * N)).step_by(2));
         assert!(container.is_empty());
@@ -123,24 +123,65 @@ mod tests {
         assert!(container.is_empty(&compressor));
     }
 
+    fn test_compressed_container_iter<
+        const BYTES: usize,
+        CompressorT: Compressor,
+        CompressedContainerT: CompressedContainer<BYTES, CompressorT>,
+    >() {
+        let mut container = CompressedContainerT::new();
+        let mut compressor = Compressor::new();
+        container.insert_iter(
+            &mut compressor,
+            (0..(2 * N)).step_by(2).map(CompactInt::from_int),
+        );
+        for i in (0..(2 * N)).step_by(2) {
+            assert!(
+                container.contains(&mut compressor, CompactInt::from_int(i)),
+                "false negative {i}"
+            );
+        }
+        for i in (0..(2 * N)).skip(1).step_by(2) {
+            assert!(
+                !container.contains(&mut compressor, CompactInt::from_int(i)),
+                "false positive {i}"
+            );
+        }
+        container.remove_iter(
+            &mut compressor,
+            (0..(2 * N)).step_by(2).map(CompactInt::from_int),
+        );
+        assert!(container.is_empty(&compressor));
+    }
+
     #[test]
     fn test_plain_vec() {
-        test_container::<PlainVec<T>>();
-        test_container_iter::<PlainVec<T>>();
+        for _ in 0..10000 {
+            test_container::<PlainVec<T>>();
+            test_container_iter::<PlainVec<T>>();
+        }
     }
 
     #[test]
     fn test_semi_sorted_vec() {
-        test_container::<SemiSortedVec<T, 32>>();
-        test_container_iter::<SemiSortedVec<T, 32>>();
+        for _ in 0..10000 {
+            test_container::<SemiSortedVec<T, 32>>();
+            test_container_iter::<SemiSortedVec<T, 32>>();
+        }
     }
 
     #[test]
     fn test_compressed_vec() {
-        test_compressed_container::<
-            2,
-            SnapCompressor,
-            SemiCompressed<2, 64, SemiSortedVec<CompactInt<2>, 32>, SnapCompressor>,
-        >();
+        for _ in 0..10000 {
+            test_compressed_container::<
+                2,
+                SnapCompressor,
+                SemiCompressed<2, 64, SemiSortedVec<CompactInt<2>, 32>, SnapCompressor>,
+            >();
+            test_compressed_container_iter::<
+                2,
+                SnapCompressor,
+                SemiCompressed<2, 64, SemiSortedVec<CompactInt<2>, 32>, SnapCompressor>,
+            >();
+        }
     }
 }
