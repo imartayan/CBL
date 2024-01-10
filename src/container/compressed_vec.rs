@@ -59,7 +59,9 @@ impl<
         match &self.data {
             MaybeCompressed::Plain(container, _) => container.contains(x),
             MaybeCompressed::Compressed(compressed) => {
-                compressor.decompress_slice(compressed).contains(&x)
+                let vec = compressor.decompress_slice(compressed);
+                let container = unsafe { ContainerT::from_vec_unchecked(vec) };
+                container.contains(x)
             }
         }
     }
@@ -79,13 +81,12 @@ impl<
                 res
             }
             MaybeCompressed::Compressed(compressed) => {
-                let mut vec = compressor.decompress_slice(compressed);
-                let absent = !vec.contains(&x);
-                if absent {
-                    vec.push(x);
-                }
-                self.data = MaybeCompressed::Compressed(compressor.compress_slice(&vec));
-                absent
+                let vec = compressor.decompress_slice(compressed);
+                let mut container = unsafe { ContainerT::from_vec_unchecked(vec) };
+                let res = container.insert(x);
+                self.data =
+                    MaybeCompressed::Compressed(compressor.compress_slice(&container.to_vec()));
+                res
             }
         }
     }
@@ -95,26 +96,16 @@ impl<
         match &mut self.data {
             MaybeCompressed::Plain(container, _) => container.remove(x),
             MaybeCompressed::Compressed(compressed) => {
-                let mut vec = compressor.decompress_slice(compressed);
-                let mut present = false;
-                if let Some(i) = vec.iter().position(|y| y == &x) {
-                    vec.swap_remove(i);
-                    present = true;
-                }
-                if vec.len() < THRESHOLD {
-                    // println!("len {}, x = {}", vec.len(), x.get::<u128>());
-                    // println!("{:?}", vec);
-                    self.data = MaybeCompressed::Plain(
-                        // unsafe { ContainerT::from_vec_unchecked(vec) },
-                        ContainerT::from_vec(vec),
-                        PhantomData,
-                    );
-                    // self.data = MaybeCompressed::Compressed(compressor.compress_slice(&vec));
-                    // println!("len {}", self.len(compressor));
+                let vec = compressor.decompress_slice(compressed);
+                let mut container = unsafe { ContainerT::from_vec_unchecked(vec) };
+                let res = container.remove(x);
+                if container.len() < THRESHOLD {
+                    self.data = MaybeCompressed::Plain(container, PhantomData);
                 } else {
-                    self.data = MaybeCompressed::Compressed(compressor.compress_slice(&vec));
+                    self.data =
+                        MaybeCompressed::Compressed(compressor.compress_slice(&container.to_vec()));
                 }
-                present
+                res
             }
         }
     }
@@ -137,13 +128,11 @@ impl<
                 }
             }
             MaybeCompressed::Compressed(compressed) => {
-                let mut vec = compressor.decompress_slice(compressed);
-                for x in it {
-                    if !vec.contains(&x) {
-                        vec.push(x);
-                    }
-                }
-                self.data = MaybeCompressed::Compressed(compressor.compress_slice(&vec));
+                let vec = compressor.decompress_slice(compressed);
+                let mut container = unsafe { ContainerT::from_vec_unchecked(vec) };
+                container.insert_iter(it);
+                self.data =
+                    MaybeCompressed::Compressed(compressor.compress_slice(&container.to_vec()));
             }
         }
     }
@@ -157,13 +146,11 @@ impl<
         match &mut self.data {
             MaybeCompressed::Plain(container, _) => container.remove_iter(it),
             MaybeCompressed::Compressed(compressed) => {
-                let mut vec = compressor.decompress_slice(compressed);
-                for x in it {
-                    if let Some(i) = vec.iter().position(|y| y == &x) {
-                        vec.swap_remove(i);
-                    }
-                }
-                self.data = MaybeCompressed::Compressed(compressor.compress_slice(&vec));
+                let vec = compressor.decompress_slice(compressed);
+                let mut container = unsafe { ContainerT::from_vec_unchecked(vec) };
+                container.remove_iter(it);
+                self.data =
+                    MaybeCompressed::Compressed(compressor.compress_slice(&container.to_vec()));
             }
         }
     }
