@@ -11,32 +11,53 @@ using namespace sux::bits;
 
 using BV = Vector<uint64_t>;
 
-// BV merge_bv(BV fst, BV snd);
-// BV intersect_bv(BV fst, BV snd);
-
 class RankBV {
 private:
-  mutable BV bitvect;
-  mutable WordDynRankSel<FenwickByteL> bv;
+  mutable BV bitvector;
+  mutable WordDynRankSel<FenwickByteL> rbv;
 
 public:
-  RankBV(size_t size) : bitvect((size + 63) / 64), bv(&bitvect, size) {}
-  // RankBV(size_t size, BV &bitvect);
-  ~RankBV() {}
+  RankBV(size_t size) : bitvector((size + 63) / 64), rbv(&bitvector, size) {}
 
   // Delete copy operators
   RankBV(const RankBV &) = delete;
   RankBV &operator=(const RankBV &) = delete;
 
-  size_t size() const { return bv.size(); }
+  size_t size() const { return rbv.size(); }
   bool get(size_t index) const {
-    return bv.bitvector()[index / 64] & (1ULL << (index % 64));
+    return rbv.bitvector()[index / 64] & (1ULL << (index % 64));
   }
-  bool set(size_t index) const { return bv.set(index); }
-  bool clear(size_t index) const { return bv.clear(index); }
-  bool toggle(size_t index) const { return bv.toggle(index); }
-  uint64_t rank(size_t index) const { return bv.rank(index); }
-  size_t count_ones() const { return bv.rank(bv.size() - 1); }
-  // RankBV merge(RankBV &other);
-  // RankBV intersect(RankBV &other);
+  bool set(size_t index) const { return rbv.set(index); }
+  bool clear(size_t index) const { return rbv.clear(index); }
+  bool toggle(size_t index) const { return rbv.toggle(index); }
+  uint64_t rank(size_t index) const { return rbv.rank(index); }
+  size_t count_ones() const { return rbv.rank(rbv.size() - 1); }
+
+  void merge(RankBV &other) const {
+    assert(rbv.size() == other.rbv.size());
+    for (size_t i = 0; i < bitvector.size(); i++) {
+      rbv.update(i, bitvector[i] | other.bitvector[i]);
+    }
+  }
+
+  void intersect(RankBV &other) const {
+    assert(rbv.size() == other.rbv.size());
+    for (size_t i = 0; i < bitvector.size(); i++) {
+      rbv.update(i, bitvector[i] & other.bitvector[i]);
+    }
+  }
+
+  void difference(RankBV &other) const {
+    assert(rbv.size() == other.rbv.size());
+    for (size_t i = 0; i < bitvector.size(); i++) {
+      rbv.update(i, bitvector[i] & ~other.bitvector[i]);
+    }
+  }
+
+  void symmetric_difference(RankBV &other) const {
+    assert(rbv.size() == other.rbv.size());
+    for (size_t i = 0; i < bitvector.size(); i++) {
+      rbv.update(i, bitvector[i] ^ other.bitvector[i]);
+    }
+  }
 };

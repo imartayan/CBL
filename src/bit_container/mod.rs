@@ -1,4 +1,5 @@
 use crate::ffi::{RankBV, UniquePtr, WithinUniquePtr};
+use core::ops::*;
 use roaring::RoaringBitmap;
 
 pub trait BitContainer {
@@ -84,6 +85,30 @@ impl BitContainer for RankBitContainer {
     #[inline]
     fn count(&self) -> usize {
         self.bv.count_ones()
+    }
+}
+
+impl AddAssign<&mut Self> for RankBitContainer {
+    fn add_assign(&mut self, rhs: &mut Self) {
+        self.bv.merge(rhs.bv.pin_mut());
+    }
+}
+
+impl SubAssign<&mut Self> for RankBitContainer {
+    fn sub_assign(&mut self, rhs: &mut Self) {
+        self.bv.difference(rhs.bv.pin_mut());
+    }
+}
+
+impl BitAndAssign<&mut Self> for RankBitContainer {
+    fn bitand_assign(&mut self, rhs: &mut Self) {
+        self.bv.intersect(rhs.bv.pin_mut());
+    }
+}
+
+impl BitXorAssign<&mut Self> for RankBitContainer {
+    fn bitxor_assign(&mut self, rhs: &mut Self) {
+        self.bv.symmetric_difference(rhs.bv.pin_mut());
     }
 }
 
