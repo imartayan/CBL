@@ -88,27 +88,27 @@ impl BitContainer for RankBitContainer {
     }
 }
 
-impl AddAssign<&mut Self> for RankBitContainer {
-    fn add_assign(&mut self, rhs: &mut Self) {
-        self.bv.merge(rhs.bv.pin_mut());
+impl BitOrAssign<&Self> for RankBitContainer {
+    fn bitor_assign(&mut self, rhs: &Self) {
+        self.bv.merge(rhs.bv.as_ref().unwrap());
     }
 }
 
-impl SubAssign<&mut Self> for RankBitContainer {
-    fn sub_assign(&mut self, rhs: &mut Self) {
-        self.bv.difference(rhs.bv.pin_mut());
+impl BitAndAssign<&Self> for RankBitContainer {
+    fn bitand_assign(&mut self, rhs: &Self) {
+        self.bv.intersect(rhs.bv.as_ref().unwrap());
     }
 }
 
-impl BitAndAssign<&mut Self> for RankBitContainer {
-    fn bitand_assign(&mut self, rhs: &mut Self) {
-        self.bv.intersect(rhs.bv.pin_mut());
+impl SubAssign<&Self> for RankBitContainer {
+    fn sub_assign(&mut self, rhs: &Self) {
+        self.bv.difference(rhs.bv.as_ref().unwrap());
     }
 }
 
-impl BitXorAssign<&mut Self> for RankBitContainer {
-    fn bitxor_assign(&mut self, rhs: &mut Self) {
-        self.bv.symmetric_difference(rhs.bv.pin_mut());
+impl BitXorAssign<&Self> for RankBitContainer {
+    fn bitxor_assign(&mut self, rhs: &Self) {
+        self.bv.symmetric_difference(rhs.bv.as_ref().unwrap());
     }
 }
 
@@ -139,7 +139,6 @@ mod tests {
         }
         assert_eq!(bitset.count(), 0, "wrong count");
     }
-
     #[test]
     fn test_roaring() {
         test_bit_container::<RoaringBitContainer>();

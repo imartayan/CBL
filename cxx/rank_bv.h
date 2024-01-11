@@ -33,28 +33,28 @@ public:
   uint64_t rank(size_t index) const { return rbv.rank(index); }
   size_t count_ones() const { return rbv.rank(rbv.size() - 1); }
 
-  void merge(RankBV &other) const {
+  void merge(const RankBV &other) const {
     assert(rbv.size() == other.rbv.size());
     for (size_t i = 0; i < bitvector.size(); i++) {
       rbv.update(i, bitvector[i] | other.bitvector[i]);
     }
   }
 
-  void intersect(RankBV &other) const {
+  void intersect(const RankBV &other) const {
     assert(rbv.size() == other.rbv.size());
     for (size_t i = 0; i < bitvector.size(); i++) {
       rbv.update(i, bitvector[i] & other.bitvector[i]);
     }
   }
 
-  void difference(RankBV &other) const {
+  void difference(const RankBV &other) const {
     assert(rbv.size() == other.rbv.size());
     for (size_t i = 0; i < bitvector.size(); i++) {
       rbv.update(i, bitvector[i] & ~other.bitvector[i]);
     }
   }
 
-  void symmetric_difference(RankBV &other) const {
+  void symmetric_difference(const RankBV &other) const {
     assert(rbv.size() == other.rbv.size());
     for (size_t i = 0; i < bitvector.size(); i++) {
       rbv.update(i, bitvector[i] ^ other.bitvector[i]);
