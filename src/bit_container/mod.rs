@@ -148,4 +148,104 @@ mod tests {
     fn test_rbv() {
         test_bit_container::<RankBitContainer>();
     }
+
+    #[test]
+    fn test_rbv_union() {
+        let mut bitset = RankBitContainer::new_with_len(BITS);
+        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        for i in (0..(3 * N)).step_by(3) {
+            bitset.insert(i);
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            bitset2.insert(i);
+        }
+        bitset |= &bitset2;
+        for i in (0..(3 * N)).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+    }
+
+    #[test]
+    fn test_rbv_intersection() {
+        let mut bitset = RankBitContainer::new_with_len(BITS);
+        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        for i in (0..(3 * N)).step_by(3) {
+            bitset.insert(i);
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            bitset.insert(i);
+            bitset2.insert(i);
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            bitset2.insert(i);
+        }
+        bitset &= &bitset2;
+        for i in (0..(3 * N)).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+    }
+
+    #[test]
+    fn test_rbv_difference() {
+        let mut bitset = RankBitContainer::new_with_len(BITS);
+        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        for i in (0..(3 * N)).step_by(3) {
+            bitset.insert(i);
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            bitset.insert(i);
+            bitset2.insert(i);
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            bitset2.insert(i);
+        }
+        bitset -= &bitset2;
+        for i in (0..(3 * N)).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+    }
+
+    #[test]
+    fn test_rbv_symmetric_difference() {
+        let mut bitset = RankBitContainer::new_with_len(BITS);
+        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        for i in (0..(3 * N)).step_by(3) {
+            bitset.insert(i);
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            bitset.insert(i);
+            bitset2.insert(i);
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            bitset2.insert(i);
+        }
+        bitset ^= &bitset2;
+        for i in (0..(3 * N)).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+        for i in (0..(3 * N)).skip(1).step_by(3) {
+            assert!(!bitset.contains(i), "false positive");
+        }
+        for i in (0..(3 * N)).skip(2).step_by(3) {
+            assert!(bitset.contains(i), "false negative");
+        }
+    }
 }
