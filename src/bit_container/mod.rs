@@ -9,6 +9,7 @@ pub trait BitContainer {
     fn remove(&mut self, index: usize) -> bool;
     fn rank(&self, index: usize) -> usize;
     fn count(&self) -> usize;
+    fn iter(&self) -> impl Iterator<Item = usize>;
 }
 
 pub struct RoaringBitContainer {
@@ -48,6 +49,11 @@ impl BitContainer for RoaringBitContainer {
     fn count(&self) -> usize {
         self.roaring.len() as usize
     }
+
+    #[inline]
+    fn iter(&self) -> impl Iterator<Item = usize> {
+        self.roaring.iter().map(|x| x as usize)
+    }
 }
 
 pub struct RankBitContainer {
@@ -85,6 +91,38 @@ impl BitContainer for RankBitContainer {
     #[inline]
     fn count(&self) -> usize {
         self.bv.count_ones()
+    }
+
+    #[inline]
+    fn iter(&self) -> impl Iterator<Item = usize> {
+        RankBVIterator {
+            bitvector: &self.bv,
+            block_index: 0,
+            block: self.bv.get_block(0),
+        }
+    }
+}
+
+struct RankBVIterator<'a> {
+    bitvector: &'a UniquePtr<RankBV>,
+    block_index: usize,
+    block: u64,
+}
+
+impl<'a> Iterator for RankBVIterator<'a> {
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        let num_blocks = self.bitvector.num_blocks();
+        while self.block_index < num_blocks && self.block == 0 {
+            self.block_index += 1;
+            self.block = self.bitvector.get_block(self.block_index);
+        }
+        if self.block_index >= num_blocks {
+            return None;
+        }
+        let bit_index = self.block.trailing_zeros() as usize;
+        self.block -= 1 << bit_index;
+        Some(self.block_index * 64 + bit_index)
     }
 }
 
@@ -147,6 +185,23 @@ mod tests {
     #[test]
     fn test_rbv() {
         test_bit_container::<RankBitContainer>();
+    }
+
+    #[test]
+    fn test_rbv_iter() {
+        let mut bitset = RankBitContainer::new_with_len(BITS);
+        bitset.insert(1);
+        bitset.insert(3);
+        bitset.insert(42);
+        bitset.insert(101010);
+        bitset.insert((1 << BITS) - 1);
+        let mut iter = bitset.iter();
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(42));
+        assert_eq!(iter.next(), Some(101010));
+        assert_eq!(iter.next(), Some((1 << BITS) - 1));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
