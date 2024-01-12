@@ -33,6 +33,14 @@ public:
   uint64_t rank(size_t index) const { return rbv.rank(index); }
   size_t count_ones() const { return rbv.rank(rbv.size() - 1); }
 
+  size_t num_blocks() const { return bitvector.size(); }
+  uint64_t get_block(size_t block_index) const {
+    return bitvector[block_index];
+  }
+  void update_block(size_t block_index, uint64_t value) const {
+    rbv.update(block_index, value);
+  }
+
   void merge(const RankBV &other) const {
     assert(rbv.size() == other.rbv.size());
     for (size_t i = 0; i < bitvector.size(); i++) {
