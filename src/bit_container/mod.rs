@@ -244,25 +244,28 @@ impl BitXorAssign<&Self> for RankBitContainer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     const N: usize = 10000;
     const BITS: usize = 20;
 
     fn test_bit_container<BC: BitContainer>() {
         let mut bitset = BC::new_with_len(BITS);
-        for i in (0..(2 * N)).step_by(2) {
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
+        for &i in v0.iter() {
             bitset.insert(i);
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for &i in v1.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert_eq!(bitset.rank(i), i / 2, "wrong rank");
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert_eq!(bitset.count(), N - i / 2, "wrong count");
             bitset.remove(i);
         }
@@ -299,99 +302,119 @@ mod tests {
     fn test_rbv_union() {
         let mut bitset = RankBitContainer::new_with_len(BITS);
         let mut bitset2 = RankBitContainer::new_with_len(BITS);
-        for i in (0..(3 * N)).step_by(3) {
+        let v0 = (0..(3 * N)).step_by(3).collect_vec();
+        let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
+        let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
+        for &i in v0.iter() {
             bitset.insert(i);
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             bitset2.insert(i);
         }
+        let res = &bitset | &bitset2;
         bitset |= &bitset2;
-        for i in (0..(3 * N)).step_by(3) {
+        for &i in v0.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
+        assert_eq!(bitset.iter().collect_vec(), res.iter().collect_vec());
     }
 
     #[test]
     fn test_rbv_intersection() {
         let mut bitset = RankBitContainer::new_with_len(BITS);
         let mut bitset2 = RankBitContainer::new_with_len(BITS);
-        for i in (0..(3 * N)).step_by(3) {
+        let v0 = (0..(3 * N)).step_by(3).collect_vec();
+        let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
+        let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
+        for &i in v0.iter() {
             bitset.insert(i);
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             bitset.insert(i);
             bitset2.insert(i);
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             bitset2.insert(i);
         }
+        let res = &bitset & &bitset2;
         bitset &= &bitset2;
-        for i in (0..(3 * N)).step_by(3) {
+        for &i in v0.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
+        assert_eq!(bitset.iter().collect_vec(), res.iter().collect_vec());
     }
 
     #[test]
     fn test_rbv_difference() {
         let mut bitset = RankBitContainer::new_with_len(BITS);
         let mut bitset2 = RankBitContainer::new_with_len(BITS);
-        for i in (0..(3 * N)).step_by(3) {
+        let v0 = (0..(3 * N)).step_by(3).collect_vec();
+        let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
+        let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
+        for &i in v0.iter() {
             bitset.insert(i);
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             bitset.insert(i);
             bitset2.insert(i);
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             bitset2.insert(i);
         }
+        let res = &bitset - &bitset2;
         bitset -= &bitset2;
-        for i in (0..(3 * N)).step_by(3) {
+        for &i in v0.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
+        assert_eq!(bitset.iter().collect_vec(), res.iter().collect_vec());
     }
 
     #[test]
     fn test_rbv_symmetric_difference() {
         let mut bitset = RankBitContainer::new_with_len(BITS);
         let mut bitset2 = RankBitContainer::new_with_len(BITS);
-        for i in (0..(3 * N)).step_by(3) {
+        let v0 = (0..(3 * N)).step_by(3).collect_vec();
+        let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
+        let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
+        for &i in v0.iter() {
             bitset.insert(i);
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             bitset.insert(i);
             bitset2.insert(i);
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             bitset2.insert(i);
         }
+        let res = &bitset ^ &bitset2;
         bitset ^= &bitset2;
-        for i in (0..(3 * N)).step_by(3) {
+        for &i in v0.iter() {
             assert!(bitset.contains(i), "false negative");
         }
-        for i in (0..(3 * N)).skip(1).step_by(3) {
+        for &i in v1.iter() {
             assert!(!bitset.contains(i), "false positive");
         }
-        for i in (0..(3 * N)).skip(2).step_by(3) {
+        for &i in v2.iter() {
             assert!(bitset.contains(i), "false negative");
         }
+        assert_eq!(bitset.iter().collect_vec(), res.iter().collect_vec());
     }
 }
