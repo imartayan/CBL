@@ -73,7 +73,7 @@ where
         }
         let rank = self.prefixes.rank(prefix);
         let id = self.tiered.get(rank) as usize;
-        self.suffix_containers[id].contains(&mut self.compressor, suffix)
+        self.suffix_containers[id].contains(&mut self.compressor, &suffix)
     }
 
     pub fn insert<T: PrimInt + Unsigned + AsPrimitive<usize>>(&mut self, word: T) -> bool {
@@ -112,7 +112,7 @@ where
         if present {
             let rank = self.prefixes.rank(prefix);
             let id = self.tiered.get(rank) as usize;
-            present = self.suffix_containers[id].remove(&mut self.compressor, suffix);
+            present = self.suffix_containers[id].remove(&mut self.compressor, &suffix);
             if self.suffix_containers[id].is_empty(&self.compressor) {
                 // self.suffix_containers[id] = SemiSortedVec::new();
                 self.empty_containers.push(id);
@@ -140,7 +140,7 @@ where
             }
             let rank = self.prefixes.rank(prefix);
             let id = self.tiered.get(rank) as usize;
-            for &(_, suffix) in group.iter() {
+            for (_, suffix) in group.iter() {
                 res.push(self.suffix_containers[id].contains(&mut self.compressor, suffix));
             }
         }
@@ -199,7 +199,7 @@ where
                 let rank = self.prefixes.rank(prefix);
                 let id = self.tiered.get(rank) as usize;
                 if group.len() == 1 {
-                    self.suffix_containers[id].remove(&mut self.compressor, group[0].1);
+                    self.suffix_containers[id].remove(&mut self.compressor, &group[0].1);
                 } else {
                     self.suffix_containers[id].remove_iter(
                         &mut self.compressor,

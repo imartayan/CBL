@@ -37,8 +37,8 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
     }
 
     #[inline]
-    fn contains(&self, x: T) -> bool {
-        self.vec.contains(&x)
+    fn contains(&self, x: &T) -> bool {
+        self.vec.contains(x)
     }
 
     #[inline]
@@ -51,8 +51,8 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
     }
 
     #[inline]
-    fn remove(&mut self, x: T) -> bool {
-        if let Some(i) = self.vec.iter().position(|y| y == &x) {
+    fn remove(&mut self, x: &T) -> bool {
+        if let Some(i) = self.vec.iter().position(|y| y == x) {
             self.vec.swap_remove(i);
             return true;
         }
@@ -60,8 +60,7 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
     }
 
     #[inline]
-    fn insert_iter<I: Iterator<Item = T>>(&mut self, it: I) {
-        // self.reserve(it.len());
+    fn insert_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
         for x in it {
             self.insert(x);
         }
@@ -70,20 +69,15 @@ impl<T: PartialEq> Container<T> for PlainVec<T> {
     #[inline]
     fn remove_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I) {
         for x in it {
-            self.remove(x);
+            self.remove(&x);
         }
-        // self.shrink();
-        // self.vec.shrink_to_fit();
     }
 
-    // #[inline]
-    // fn reserve(&mut self, additional: usize) {
-    //     self.vec.reserve(additional);
-    //     // self.vec.reserve_exact(additional);
-    // }
-
-    // #[inline]
-    // fn shrink(&mut self) {
-    //     self.vec.shrink_to_fit();
-    // }
+    #[inline]
+    fn iter<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a T>
+    where
+        T: 'a,
+    {
+        self.vec.iter()
+    }
 }

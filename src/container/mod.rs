@@ -20,11 +20,14 @@ pub trait Container<T> {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    fn contains(&self, x: T) -> bool;
+    fn contains(&self, x: &T) -> bool;
     fn insert(&mut self, x: T) -> bool;
-    fn remove(&mut self, x: T) -> bool;
+    fn remove(&mut self, x: &T) -> bool;
     fn insert_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I);
     fn remove_iter<I: ExactSizeIterator<Item = T>>(&mut self, it: I);
+    fn iter<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a T>
+    where
+        T: 'a;
 }
 
 pub trait CompressedContainer<const BYTES: usize, CompressorT: Compressor> {
@@ -35,9 +38,9 @@ pub trait CompressedContainer<const BYTES: usize, CompressorT: Compressor> {
     fn is_empty(&self, compressor: &CompressorT) -> bool {
         self.len(compressor) == 0
     }
-    fn contains(&self, compressor: &mut CompressorT, x: CompactInt<BYTES>) -> bool;
+    fn contains(&self, compressor: &mut CompressorT, x: &CompactInt<BYTES>) -> bool;
     fn insert(&mut self, compressor: &mut CompressorT, x: CompactInt<BYTES>) -> bool;
-    fn remove(&mut self, compressor: &mut CompressorT, x: CompactInt<BYTES>) -> bool;
+    fn remove(&mut self, compressor: &mut CompressorT, x: &CompactInt<BYTES>) -> bool;
     fn insert_iter<I: ExactSizeIterator<Item = CompactInt<BYTES>>>(
         &mut self,
         compressor: &mut CompressorT,
@@ -48,27 +51,34 @@ pub trait CompressedContainer<const BYTES: usize, CompressorT: Compressor> {
         compressor: &mut CompressorT,
         it: I,
     );
+    // fn iter<'a>(
+    //     &'a self,
+    //     compressor: &mut CompressorT,
+    // ) -> impl ExactSizeIterator<Item = &'a CompactInt<BYTES>>;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     type T = usize;
     const N: usize = 100;
 
     fn test_container<ContainerT: Container<T>>() {
         let mut container = ContainerT::new();
-        for i in (0..(2 * N)).step_by(2) {
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
+        for &i in v0.iter() {
             assert!(container.insert(i), "failed to insert {i}");
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for i in v0.iter() {
             assert!(container.contains(i), "false negative {i}");
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for i in v1.iter() {
             assert!(!container.contains(i), "false positive {i}");
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for i in v0.iter() {
             assert_eq!(container.len(), N - i / 2, "wrong len");
             assert!(container.remove(i), "failed to remove {i}");
         }
@@ -77,14 +87,16 @@ mod tests {
 
     fn test_container_iter<ContainerT: Container<T>>() {
         let mut container = ContainerT::new();
-        container.insert_iter((0..(2 * N)).step_by(2));
-        for i in (0..(2 * N)).step_by(2) {
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
+        container.insert_iter(v0.iter().copied());
+        for i in v0.iter() {
             assert!(container.contains(i), "false negative {i}");
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for i in v1.iter() {
             assert!(!container.contains(i), "false positive {i}");
         }
-        container.remove_iter((0..(2 * N)).step_by(2));
+        container.remove_iter(v0.iter().copied());
         assert!(container.is_empty());
     }
 
@@ -95,28 +107,30 @@ mod tests {
     >() {
         let mut container = CompressedContainerT::new();
         let mut compressor = Compressor::new();
-        for i in (0..(2 * N)).step_by(2) {
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
+        for &i in v0.iter() {
             assert!(
                 container.insert(&mut compressor, CompactInt::from_int(i)),
                 "failed to insert {i}"
             );
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert!(
-                container.contains(&mut compressor, CompactInt::from_int(i)),
+                container.contains(&mut compressor, &CompactInt::from_int(i)),
                 "false negative {i}"
             );
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for &i in v1.iter() {
             assert!(
-                !container.contains(&mut compressor, CompactInt::from_int(i)),
+                !container.contains(&mut compressor, &CompactInt::from_int(i)),
                 "false positive {i}"
             );
         }
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert_eq!(container.len(&compressor), N - i / 2, "wrong len");
             assert!(
-                container.remove(&mut compressor, CompactInt::from_int(i)),
+                container.remove(&mut compressor, &CompactInt::from_int(i)),
                 "failed to remove {i}"
             );
         }
@@ -130,25 +144,27 @@ mod tests {
     >() {
         let mut container = CompressedContainerT::new();
         let mut compressor = Compressor::new();
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
         container.insert_iter(
             &mut compressor,
-            (0..(2 * N)).step_by(2).map(CompactInt::from_int),
+            v0.iter().copied().map(CompactInt::from_int),
         );
-        for i in (0..(2 * N)).step_by(2) {
+        for &i in v0.iter() {
             assert!(
-                container.contains(&mut compressor, CompactInt::from_int(i)),
+                container.contains(&mut compressor, &CompactInt::from_int(i)),
                 "false negative {i}"
             );
         }
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        for &i in v1.iter() {
             assert!(
-                !container.contains(&mut compressor, CompactInt::from_int(i)),
+                !container.contains(&mut compressor, &CompactInt::from_int(i)),
                 "false positive {i}"
             );
         }
         container.remove_iter(
             &mut compressor,
-            (0..(2 * N)).step_by(2).map(CompactInt::from_int),
+            v0.iter().copied().map(CompactInt::from_int),
         );
         assert!(container.is_empty(&compressor));
     }

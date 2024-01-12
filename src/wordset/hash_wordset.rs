@@ -62,7 +62,7 @@ where
         let (prefix, suffix) = Self::split_prefix_suffix(word);
         match self.containers.get(&prefix) {
             None => false,
-            Some(container) => container.contains(suffix),
+            Some(container) => container.contains(&suffix),
         }
     }
 
@@ -87,7 +87,7 @@ where
             Entry::Vacant(_) => false,
             Entry::Occupied(mut entry) => {
                 let container = entry.get_mut();
-                let present = container.remove(suffix);
+                let present = container.remove(&suffix);
                 if container.is_empty() {
                     entry.remove();
                 }
@@ -110,7 +110,7 @@ where
                     continue;
                 }
                 Some(container) => {
-                    for &(_, suffix) in group.iter() {
+                    for (_, suffix) in group.iter() {
                         res.push(container.contains(suffix));
                     }
                 }
@@ -151,7 +151,7 @@ where
                 Entry::Occupied(mut entry) => {
                     let container = entry.get_mut();
                     if group.len() == 1 {
-                        container.remove(group[0].1);
+                        container.remove(&group[0].1);
                     } else {
                         container.remove_iter(group.iter().map(|&(_, suffix)| suffix));
                     }

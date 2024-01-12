@@ -55,7 +55,7 @@ impl<
     }
 
     #[inline]
-    fn contains(&self, compressor: &mut CompressorT, x: CompactInt<BYTES>) -> bool {
+    fn contains(&self, compressor: &mut CompressorT, x: &CompactInt<BYTES>) -> bool {
         match &self.data {
             MaybeCompressed::Plain(container, _) => container.contains(x),
             MaybeCompressed::Compressed(compressed) => {
@@ -92,7 +92,7 @@ impl<
     }
 
     #[inline]
-    fn remove(&mut self, compressor: &mut CompressorT, x: CompactInt<BYTES>) -> bool {
+    fn remove(&mut self, compressor: &mut CompressorT, x: &CompactInt<BYTES>) -> bool {
         match &mut self.data {
             MaybeCompressed::Plain(container, _) => container.remove(x),
             MaybeCompressed::Compressed(compressed) => {
@@ -154,4 +154,19 @@ impl<
             }
         }
     }
+
+    // #[inline]
+    // fn iter<'a>(
+    //     &'a self,
+    //     compressor: &mut CompressorT,
+    // ) -> impl ExactSizeIterator<Item = &'a CompactInt<BYTES>> {
+    //     match &self.data {
+    //         MaybeCompressed::Plain(container, _) => container.iter(),
+    //         MaybeCompressed::Compressed(compressed) => {
+    //             let vec = compressor.decompress_slice(compressed);
+    //             let container = unsafe { ContainerT::from_vec_unchecked(vec) };
+    //             container.iter()
+    //         }
+    //     }
+    // }
 }
