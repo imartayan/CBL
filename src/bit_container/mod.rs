@@ -3,7 +3,8 @@ use core::ops::*;
 use roaring::RoaringBitmap;
 
 pub trait BitContainer {
-    fn new_with_len(len: usize) -> Self;
+    fn new_with_len(bits: usize) -> Self;
+    fn bits(&self) -> usize;
     fn contains(&self, index: usize) -> bool;
     fn insert(&mut self, index: usize) -> bool;
     fn remove(&mut self, index: usize) -> bool;
@@ -18,11 +19,16 @@ pub struct RoaringBitContainer {
 
 impl BitContainer for RoaringBitContainer {
     #[inline]
-    fn new_with_len(len: usize) -> Self {
-        assert!(len <= 32, "Roaring supports up to 32 bits");
+    fn new_with_len(bits: usize) -> Self {
+        assert!(bits <= 32, "Roaring supports up to 32 bits");
         Self {
             roaring: RoaringBitmap::new(),
         }
+    }
+
+    #[inline]
+    fn bits(&self) -> usize {
+        32
     }
 
     #[inline]
@@ -62,10 +68,15 @@ pub struct RankBitContainer {
 
 impl BitContainer for RankBitContainer {
     #[inline]
-    fn new_with_len(len: usize) -> Self {
+    fn new_with_len(bits: usize) -> Self {
         Self {
-            bv: RankBV::new(1 << len).within_unique_ptr(),
+            bv: RankBV::new(1 << bits).within_unique_ptr(),
         }
+    }
+
+    #[inline]
+    fn bits(&self) -> usize {
+        self.bv.size().ilog2() as usize
     }
 
     #[inline]
@@ -126,27 +137,107 @@ impl<'a> Iterator for RankBVIterator<'a> {
     }
 }
 
+impl BitOr<Self> for &RankBitContainer {
+    type Output = RankBitContainer;
+
+    fn bitor(self, other: Self) -> Self::Output {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        let res = Self::Output::new_with_len(self.bits());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            res.bv.update_block(i, a | b);
+        }
+        res
+    }
+}
+
 impl BitOrAssign<&Self> for RankBitContainer {
-    fn bitor_assign(&mut self, rhs: &Self) {
-        self.bv.merge(rhs.bv.as_ref().unwrap());
+    fn bitor_assign(&mut self, other: &Self) {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            self.bv.update_block(i, a | b);
+        }
+    }
+}
+
+impl BitAnd<Self> for &RankBitContainer {
+    type Output = RankBitContainer;
+
+    fn bitand(self, other: Self) -> Self::Output {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        let res = Self::Output::new_with_len(self.bits());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            res.bv.update_block(i, a & b);
+        }
+        res
     }
 }
 
 impl BitAndAssign<&Self> for RankBitContainer {
-    fn bitand_assign(&mut self, rhs: &Self) {
-        self.bv.intersect(rhs.bv.as_ref().unwrap());
+    fn bitand_assign(&mut self, other: &Self) {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            self.bv.update_block(i, a & b);
+        }
+    }
+}
+
+impl Sub<Self> for &RankBitContainer {
+    type Output = RankBitContainer;
+
+    fn sub(self, other: Self) -> Self::Output {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        let res = Self::Output::new_with_len(self.bits());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            res.bv.update_block(i, a & !b);
+        }
+        res
     }
 }
 
 impl SubAssign<&Self> for RankBitContainer {
-    fn sub_assign(&mut self, rhs: &Self) {
-        self.bv.difference(rhs.bv.as_ref().unwrap());
+    fn sub_assign(&mut self, other: &Self) {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            self.bv.update_block(i, a & !b);
+        }
+    }
+}
+
+impl BitXor<Self> for &RankBitContainer {
+    type Output = RankBitContainer;
+
+    fn bitxor(self, other: Self) -> Self::Output {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        let res = Self::Output::new_with_len(self.bits());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            res.bv.update_block(i, a ^ b);
+        }
+        res
     }
 }
 
 impl BitXorAssign<&Self> for RankBitContainer {
-    fn bitxor_assign(&mut self, rhs: &Self) {
-        self.bv.symmetric_difference(rhs.bv.as_ref().unwrap());
+    fn bitxor_assign(&mut self, other: &Self) {
+        assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
+        for i in 0..self.bv.num_blocks() {
+            let a = self.bv.get_block(i);
+            let b = other.bv.get_block(i);
+            self.bv.update_block(i, a ^ b);
+        }
     }
 }
 
