@@ -253,25 +253,25 @@ mod tests {
 
     #[test]
     fn test_insert_contains_remove() {
-        let mut positive: Vec<_> = (0..(2 * N)).step_by(2).collect();
-        let mut negative: Vec<_> = (0..(2 * N)).skip(1).step_by(2).collect();
+        let mut v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let mut v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
         let mut rng = thread_rng();
-        positive.shuffle(&mut rng);
-        negative.shuffle(&mut rng);
+        v0.shuffle(&mut rng);
+        v1.shuffle(&mut rng);
         let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
-        for &i in positive.iter() {
+        for &i in v0.iter() {
             set.insert(i);
         }
-        for &i in positive.iter() {
+        for &i in v0.iter() {
             assert!(set.contains(i));
         }
-        for &i in negative.iter() {
+        for &i in v1.iter() {
             assert!(!set.contains(i));
         }
-        for &i in positive.iter() {
+        for &i in v0.iter() {
             set.remove(i);
         }
-        for &i in positive.iter() {
+        for &i in v0.iter() {
             assert!(!set.contains(i));
         }
         assert!(set.is_empty());
@@ -280,14 +280,15 @@ mod tests {
     #[test]
     fn test_batch_operations() {
         let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
-        let words: Vec<_> = (0..(2 * N)).step_by(2).collect();
-        set.insert_batch(&words);
-        assert!(set.contains_batch(&words).iter().all(|&b| b));
-        for i in (0..(2 * N)).skip(1).step_by(2) {
+        let v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
+        set.insert_batch(&v0);
+        assert!(set.contains_batch(&v0).iter().all(|&b| b));
+        for &i in v1.iter() {
             assert!(!set.contains(i));
         }
-        set.remove_batch(&words);
-        for i in (0..(2 * N)).step_by(2) {
+        set.remove_batch(&v0);
+        for &i in v0.iter() {
             assert!(!set.contains(i));
         }
         assert!(set.is_empty());
