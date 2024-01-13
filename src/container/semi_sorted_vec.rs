@@ -111,8 +111,12 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitOr<Self> for &mut SemiSortedVec<T
 
     fn bitor(self, other: Self) -> Self::Output {
         let mut vec = Vec::new();
-        self.vec.sort_unstable();
-        other.vec.sort_unstable();
+        if self.vec.len() < THRESHOLD {
+            self.vec.sort_unstable();
+        }
+        if other.vec.len() < THRESHOLD {
+            other.vec.sort_unstable();
+        }
         let mut self_iter = self.vec.iter();
         let mut other_iter = other.vec.iter();
         let mut x = self_iter.next();
@@ -151,8 +155,12 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitAnd<Self> for &mut SemiSortedVec<
 
     fn bitand(self, other: Self) -> Self::Output {
         let mut vec = Vec::new();
-        self.vec.sort_unstable();
-        other.vec.sort_unstable();
+        if self.vec.len() < THRESHOLD {
+            self.vec.sort_unstable();
+        }
+        if other.vec.len() < THRESHOLD {
+            other.vec.sort_unstable();
+        }
         let mut self_iter = self.vec.iter();
         let mut other_iter = other.vec.iter();
         let mut x = self_iter.next();
@@ -181,8 +189,12 @@ impl<T: Copy + Ord, const THRESHOLD: usize> Sub<Self> for &mut SemiSortedVec<T, 
 
     fn sub(self, other: Self) -> Self::Output {
         let mut vec = Vec::new();
-        self.vec.sort_unstable();
-        other.vec.sort_unstable();
+        if self.vec.len() < THRESHOLD {
+            self.vec.sort_unstable();
+        }
+        if other.vec.len() < THRESHOLD {
+            other.vec.sort_unstable();
+        }
         let mut self_iter = self.vec.iter();
         let mut other_iter = other.vec.iter();
         let mut x = self_iter.next();
@@ -215,8 +227,12 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitXor<Self> for &mut SemiSortedVec<
 
     fn bitxor(self, other: Self) -> Self::Output {
         let mut vec = Vec::new();
-        self.vec.sort_unstable();
-        other.vec.sort_unstable();
+        if self.vec.len() < THRESHOLD {
+            self.vec.sort_unstable();
+        }
+        if other.vec.len() < THRESHOLD {
+            other.vec.sort_unstable();
+        }
         let mut self_iter = self.vec.iter();
         let mut other_iter = other.vec.iter();
         let mut x = self_iter.next();
