@@ -3,8 +3,8 @@ use core::ops::*;
 use roaring::RoaringBitmap;
 
 pub trait BitContainer {
-    fn new_with_len(bits: usize) -> Self;
-    fn bits(&self) -> usize;
+    fn new_with_bitlength(bitlength: usize) -> Self;
+    fn bitlength(&self) -> usize;
     fn contains(&self, index: usize) -> bool;
     fn insert(&mut self, index: usize) -> bool;
     fn remove(&mut self, index: usize) -> bool;
@@ -19,15 +19,15 @@ pub struct RoaringBitContainer {
 
 impl BitContainer for RoaringBitContainer {
     #[inline]
-    fn new_with_len(bits: usize) -> Self {
-        assert!(bits <= 32, "Roaring supports up to 32 bits");
+    fn new_with_bitlength(bitlength: usize) -> Self {
+        assert!(bitlength <= 32, "Roaring supports up to 32 bits");
         Self {
             roaring: RoaringBitmap::new(),
         }
     }
 
     #[inline]
-    fn bits(&self) -> usize {
+    fn bitlength(&self) -> usize {
         32
     }
 
@@ -68,14 +68,14 @@ pub struct RankBitContainer {
 
 impl BitContainer for RankBitContainer {
     #[inline]
-    fn new_with_len(bits: usize) -> Self {
+    fn new_with_bitlength(bitlength: usize) -> Self {
         Self {
-            bv: RankBV::new(1 << bits).within_unique_ptr(),
+            bv: RankBV::new(1 << bitlength).within_unique_ptr(),
         }
     }
 
     #[inline]
-    fn bits(&self) -> usize {
+    fn bitlength(&self) -> usize {
         self.bv.size().ilog2() as usize
     }
 
@@ -142,7 +142,7 @@ impl BitOr<Self> for &RankBitContainer {
 
     fn bitor(self, other: Self) -> Self::Output {
         assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
-        let res = Self::Output::new_with_len(self.bits());
+        let res = Self::Output::new_with_bitlength(self.bitlength());
         for i in 0..self.bv.num_blocks() {
             let a = self.bv.get_block(i);
             let b = other.bv.get_block(i);
@@ -168,7 +168,7 @@ impl BitAnd<Self> for &RankBitContainer {
 
     fn bitand(self, other: Self) -> Self::Output {
         assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
-        let res = Self::Output::new_with_len(self.bits());
+        let res = Self::Output::new_with_bitlength(self.bitlength());
         for i in 0..self.bv.num_blocks() {
             let a = self.bv.get_block(i);
             let b = other.bv.get_block(i);
@@ -194,7 +194,7 @@ impl Sub<Self> for &RankBitContainer {
 
     fn sub(self, other: Self) -> Self::Output {
         assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
-        let res = Self::Output::new_with_len(self.bits());
+        let res = Self::Output::new_with_bitlength(self.bitlength());
         for i in 0..self.bv.num_blocks() {
             let a = self.bv.get_block(i);
             let b = other.bv.get_block(i);
@@ -220,7 +220,7 @@ impl BitXor<Self> for &RankBitContainer {
 
     fn bitxor(self, other: Self) -> Self::Output {
         assert_eq!(self.bv.num_blocks(), other.bv.num_blocks());
-        let res = Self::Output::new_with_len(self.bits());
+        let res = Self::Output::new_with_bitlength(self.bitlength());
         for i in 0..self.bv.num_blocks() {
             let a = self.bv.get_block(i);
             let b = other.bv.get_block(i);
@@ -250,7 +250,7 @@ mod tests {
     const BITS: usize = 20;
 
     fn test_bit_container<BC: BitContainer>() {
-        let mut bitset = BC::new_with_len(BITS);
+        let mut bitset = BC::new_with_bitlength(BITS);
         let v0 = (0..(2 * N)).step_by(2).collect_vec();
         let v1 = (0..(2 * N)).skip(1).step_by(2).collect_vec();
         for &i in v0.iter() {
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_rbv_iter() {
-        let mut bitset = RankBitContainer::new_with_len(BITS);
+        let mut bitset = RankBitContainer::new_with_bitlength(BITS);
         bitset.insert(1);
         bitset.insert(3);
         bitset.insert(42);
@@ -300,8 +300,8 @@ mod tests {
 
     #[test]
     fn test_rbv_union() {
-        let mut bitset = RankBitContainer::new_with_len(BITS);
-        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        let mut bitset = RankBitContainer::new_with_bitlength(BITS);
+        let mut bitset2 = RankBitContainer::new_with_bitlength(BITS);
         let v0 = (0..(3 * N)).step_by(3).collect_vec();
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
@@ -327,8 +327,8 @@ mod tests {
 
     #[test]
     fn test_rbv_intersection() {
-        let mut bitset = RankBitContainer::new_with_len(BITS);
-        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        let mut bitset = RankBitContainer::new_with_bitlength(BITS);
+        let mut bitset2 = RankBitContainer::new_with_bitlength(BITS);
         let v0 = (0..(3 * N)).step_by(3).collect_vec();
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
@@ -358,8 +358,8 @@ mod tests {
 
     #[test]
     fn test_rbv_difference() {
-        let mut bitset = RankBitContainer::new_with_len(BITS);
-        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        let mut bitset = RankBitContainer::new_with_bitlength(BITS);
+        let mut bitset2 = RankBitContainer::new_with_bitlength(BITS);
         let v0 = (0..(3 * N)).step_by(3).collect_vec();
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
@@ -389,8 +389,8 @@ mod tests {
 
     #[test]
     fn test_rbv_symmetric_difference() {
-        let mut bitset = RankBitContainer::new_with_len(BITS);
-        let mut bitset2 = RankBitContainer::new_with_len(BITS);
+        let mut bitset = RankBitContainer::new_with_bitlength(BITS);
+        let mut bitset2 = RankBitContainer::new_with_bitlength(BITS);
         let v0 = (0..(3 * N)).step_by(3).collect_vec();
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();

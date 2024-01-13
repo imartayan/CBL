@@ -34,7 +34,7 @@ where
 
     pub fn new() -> Self {
         Self {
-            prefixes: RankBitContainer::new_with_len(Self::PREFIX_BITS),
+            prefixes: RankBitContainer::new_with_bitlength(Self::PREFIX_BITS),
             tiered: TieredVec28::new().within_unique_ptr(),
             suffix_containers: Vec::new(),
             empty_containers: Vec::new(),
