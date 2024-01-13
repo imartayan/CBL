@@ -12,7 +12,7 @@ where
     [(); PREFIX_BITS.div_ceil(8)]:,
     [(); (2 * K).saturating_sub(M - 1)]:,
 {
-    wordset: BitWordSet<
+    wordset: WordSet<
         PREFIX_BITS,
         { (2 * K + (2 * K).next_power_of_two().ilog2() as usize).saturating_sub(PREFIX_BITS) },
     >,
@@ -34,7 +34,7 @@ macro_rules! impl_cbl {
 
             pub fn new() -> Self {
                 Self {
-                    wordset: BitWordSet::new(),
+                    wordset: WordSet::new(),
                     necklace_queue: NecklaceQueue::<
                         { 2 * K },
                         $KT,
