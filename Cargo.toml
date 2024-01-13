@@ -9,12 +9,10 @@ edition = "2021"
 ahash = "0.8"
 autocxx = "0.26.0"
 cxx = "1.0"
-itertools = "0.12"
 num-traits = "0.2"
 rdst = "0.20"
 roaring = "0.10"
 seq_io = "0.4.0-alpha.0"
-snap = "1.1"
 
 [build-dependencies]
 autocxx-build = "0.26.0"
@@ -25,6 +23,7 @@ miette = { version = "5", features = [
 
 [dev-dependencies]
 clap = { version = "4.4", features = ["derive"] }
+itertools = "0.12"
 rand = "0.8"
 
 [profile.dev]
