@@ -3,6 +3,7 @@
 use core::cmp::Ordering;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
+use rdst::RadixKey;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -79,6 +80,15 @@ impl<const BYTES: usize> PartialOrd for CompactInt<BYTES> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<const BYTES: usize> RadixKey for CompactInt<BYTES> {
+    const LEVELS: usize = BYTES;
+
+    #[inline]
+    fn get_level(&self, level: usize) -> u8 {
+        self.0[level]
     }
 }
 
