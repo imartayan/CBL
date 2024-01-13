@@ -1,6 +1,5 @@
 use crate::ffi::{RankBV, UniquePtr, WithinUniquePtr};
 use core::ops::*;
-use roaring::RoaringBitmap;
 
 pub trait BitContainer {
     fn new_with_bitlength(bitlength: usize) -> Self;
@@ -11,55 +10,6 @@ pub trait BitContainer {
     fn rank(&self, index: usize) -> usize;
     fn count(&self) -> usize;
     fn iter(&self) -> impl Iterator<Item = usize>;
-}
-
-pub struct RoaringBitContainer {
-    roaring: RoaringBitmap,
-}
-
-impl BitContainer for RoaringBitContainer {
-    #[inline]
-    fn new_with_bitlength(bitlength: usize) -> Self {
-        assert!(bitlength <= 32, "Roaring supports up to 32 bits");
-        Self {
-            roaring: RoaringBitmap::new(),
-        }
-    }
-
-    #[inline]
-    fn bitlength(&self) -> usize {
-        32
-    }
-
-    #[inline]
-    fn contains(&self, index: usize) -> bool {
-        self.roaring.contains(index as u32)
-    }
-
-    #[inline]
-    fn insert(&mut self, index: usize) -> bool {
-        self.roaring.insert(index as u32)
-    }
-
-    #[inline]
-    fn remove(&mut self, index: usize) -> bool {
-        self.roaring.remove(index as u32)
-    }
-
-    #[inline]
-    fn rank(&self, index: usize) -> usize {
-        self.roaring.rank(index as u32) as usize - 1
-    }
-
-    #[inline]
-    fn count(&self) -> usize {
-        self.roaring.len() as usize
-    }
-
-    #[inline]
-    fn iter(&self) -> impl Iterator<Item = usize> {
-        self.roaring.iter().map(|x| x as usize)
-    }
 }
 
 pub struct RankBitContainer {
@@ -270,10 +220,6 @@ mod tests {
             bitset.remove(i);
         }
         assert_eq!(bitset.count(), 0, "wrong count");
-    }
-    #[test]
-    fn test_roaring() {
-        test_bit_container::<RoaringBitContainer>();
     }
 
     #[test]
