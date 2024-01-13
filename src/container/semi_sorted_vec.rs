@@ -1,7 +1,6 @@
 use super::Container;
 use core::cmp::Ordering;
 use core::ops::*;
-use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct SemiSortedVec<T: Ord, const THRESHOLD: usize> {
