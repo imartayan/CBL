@@ -1,7 +1,7 @@
-use ahash::AHashSet;
 use cbl::kmer::{Base, Kmer, RawKmer};
 use cbl::reads::*;
 use clap::Parser;
+use std::collections::HashSet;
 use std::time::Instant;
 
 // Loads runtime-provided constants for which declarations
@@ -23,7 +23,7 @@ fn main() {
     let args = Args::parse();
     let input_filename = args.input.as_str();
     let reads = Fasta::from_file(input_filename);
-    let mut set = AHashSet::new();
+    let mut set = HashSet::new();
 
     reads.process_rec(|rec| {
         let seq = rec.seq();

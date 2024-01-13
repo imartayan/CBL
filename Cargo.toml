@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ahash = "0.8"
 autocxx = "0.26.0"
 cxx = "1.0"
 num-traits = "0.2"
