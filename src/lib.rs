@@ -2,14 +2,15 @@
 #![feature(slice_group_by)]
 #![feature(generic_const_exprs)]
 
-pub mod bit_container;
+pub(crate) mod bit_container;
+pub(crate) mod compact_int;
+pub(crate) mod container;
+pub(crate) mod ffi;
+pub(crate) mod necklace;
+pub(crate) mod wordset;
+
 pub mod cbl;
-pub mod compact_int;
-pub mod container;
-pub mod ffi;
 pub mod kmer;
-pub mod necklace;
 pub mod reads;
-pub mod wordset;
 
 pub use cbl::*;
