@@ -2,7 +2,7 @@
 #![feature(slice_group_by)]
 #![feature(generic_const_exprs)]
 
-pub(crate) mod bit_container;
+pub(crate) mod bitvector;
 pub(crate) mod compact_int;
 pub(crate) mod container;
 pub(crate) mod ffi;

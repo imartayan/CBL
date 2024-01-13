@@ -1,4 +1,4 @@
-use crate::bit_container::*;
+use crate::bitvector::*;
 use crate::compact_int::CompactInt;
 use crate::container::*;
 use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
@@ -12,7 +12,7 @@ pub struct BitWordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
 where
     [(); SUFFIX_BITS.div_ceil(8)]:,
 {
-    prefixes: RankBitContainer,
+    prefixes: Bitvector,
     tiered: UniquePtr<TieredVec28>,
     suffix_containers: Vec<SemiSortedVec<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>>,
     empty_containers: Vec<usize>,
@@ -27,7 +27,7 @@ where
 
     pub fn new() -> Self {
         Self {
-            prefixes: RankBitContainer::new_with_bitlength(Self::PREFIX_BITS),
+            prefixes: Bitvector::new_with_bitlength(Self::PREFIX_BITS),
             tiered: TieredVec28::new().within_unique_ptr(),
             suffix_containers: Vec::new(),
             empty_containers: Vec::new(),
