@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 mod plain_vec;
 mod semi_sorted_vec;
 

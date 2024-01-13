@@ -1,5 +1,7 @@
 // Adapted from https://github.com/Daniel-Liu-c0deb0t/simple-saca/blob/main/src/compact_vec.rs
 
+#![allow(dead_code)]
+
 use core::cmp::Ordering;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
