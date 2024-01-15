@@ -4,6 +4,7 @@ use crate::bitvector::*;
 use crate::compact_int::CompactInt;
 use crate::container::*;
 use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
+use core::slice::Iter;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
@@ -197,6 +198,20 @@ where
     }
 
     #[inline]
+    pub fn iter<T: PrimInt + Unsigned + AsPrimitive<usize>>(&self) -> impl Iterator<Item = T> + '_
+    where
+        usize: AsPrimitive<T>,
+    {
+        WordSetIterator {
+            wordset: &self,
+            prefix_iter: self.prefixes.iter(),
+            prefix: None,
+            suffix_iter: [].iter(),
+            suffix: None,
+        }
+    }
+
+    #[inline]
     pub fn prefix_load(&self) -> f64 {
         self.tiered.len() as f64 / (1 << Self::PREFIX_BITS) as f64
     }
@@ -237,6 +252,48 @@ where
 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+struct WordSetIterator<
+    'a,
+    T: PrimInt + Unsigned + AsPrimitive<usize>,
+    const PREFIX_BITS: usize,
+    const SUFFIX_BITS: usize,
+> where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+    usize: AsPrimitive<T>,
+{
+    wordset: &'a WordSet<PREFIX_BITS, SUFFIX_BITS>,
+    prefix_iter: BitvectorIterator<'a>,
+    prefix: Option<usize>,
+    suffix_iter: Iter<'a, CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
+    suffix: Option<&'a CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
+}
+
+impl<
+        'a,
+        T: PrimInt + Unsigned + AsPrimitive<usize>,
+        const PREFIX_BITS: usize,
+        const SUFFIX_BITS: usize,
+    > Iterator for WordSetIterator<'a, T, PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+    usize: AsPrimitive<T>,
+{
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.suffix.is_none() {
+            self.prefix = self.prefix_iter.next();
+            let rank = self.wordset.prefixes.rank(self.prefix?);
+            let id = self.wordset.tiered.get(rank) as usize;
+            self.suffix_iter = self.wordset.suffix_containers[id].iter();
+            self.suffix = self.suffix_iter.next();
+        }
+        let prefix: T = self.prefix?.as_();
+        let suffix: T = self.suffix?.get();
+        self.suffix = self.suffix_iter.next();
+        Some((prefix << SUFFIX_BITS) | suffix)
     }
 }
 
@@ -292,5 +349,22 @@ mod tests {
             assert!(!set.contains(i));
         }
         assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_wordset_iter() {
+        let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
+        set.insert(1u64);
+        set.insert(42u64);
+        set.insert((1 << SUFFIX_BITS) - 1u64);
+        set.insert((1 << SUFFIX_BITS) + 10u64);
+        set.insert(10 * (1 << SUFFIX_BITS) + 10u64);
+        let mut iter = set.iter::<u64>();
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(42));
+        assert_eq!(iter.next(), Some((1 << SUFFIX_BITS) - 1u64));
+        assert_eq!(iter.next(), Some((1 << SUFFIX_BITS) + 10));
+        assert_eq!(iter.next(), Some(10 * (1 << SUFFIX_BITS) + 10));
+        assert_eq!(iter.next(), None);
     }
 }
