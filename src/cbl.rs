@@ -1,5 +1,5 @@
 use crate::kmer::{Base, Kmer, RawKmer};
-use crate::necklace::{necklace_pos, queue::NecklaceQueue};
+use crate::necklace::*;
 use crate::wordset::*;
 use core::cmp::min;
 use core::ops::*;
@@ -60,9 +60,23 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            fn split_necklace_pos(word: $KT) -> ($KT, usize) {
+                (
+                    word / (Self::KMER_BITS as $KT),
+                    (word % (Self::KMER_BITS as $KT)) as usize,
+                )
+            }
+
+            #[inline]
             fn get_word<KmerT: Kmer<K, $KT>>(kmer: KmerT) -> $KT {
                 let (necklace, pos) = necklace_pos::<{ 2 * K }, $KT>(kmer.to_int());
                 Self::merge_necklace_pos(necklace, pos)
+            }
+
+            #[inline]
+            fn recover_kmer(word: $KT) -> RawKmer<K, $KT> {
+                let (necklace, pos) = Self::split_necklace_pos(word);
+                RawKmer::<K, $KT>::from_int(revert_necklace_pos::<{ 2 * K }, $KT>(necklace, pos))
             }
 
             #[inline]
@@ -129,6 +143,11 @@ macro_rules! impl_cbl {
                     let words = self.get_seq_words(chunk);
                     self.wordset.remove_batch(&words);
                 }
+            }
+
+            #[inline]
+            pub fn iter(&self) -> impl Iterator<Item = RawKmer<K, $KT>> + '_ {
+                self.wordset.iter::<$KT>().map(Self::recover_kmer)
             }
 
             #[inline]
@@ -226,6 +245,7 @@ impl_cbl!(u128);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
     use rand::thread_rng;
     use rand::Rng;
 
@@ -284,6 +304,18 @@ mod tests {
             );
         }
         assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_iter() {
+        let mut set = CBL::<K, T>::new();
+        let kmers = (0..1000u128).step_by(7).map(KmerT::from_int).collect_vec();
+        for &kmer in kmers.iter() {
+            set.insert(kmer);
+        }
+        let mut res = set.iter().collect_vec();
+        res.sort_unstable();
+        assert_eq!(res, kmers);
     }
 
     #[test]
