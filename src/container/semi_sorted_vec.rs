@@ -1,6 +1,7 @@
 use super::Container;
 use core::cmp::Ordering;
 use core::ops::*;
+use core::slice::Iter;
 
 #[derive(Debug, Clone)]
 pub struct SemiSortedVec<T: Ord, const THRESHOLD: usize> {
@@ -98,7 +99,7 @@ impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD
     }
 
     #[inline]
-    fn iter<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a T>
+    fn iter<'a>(&'a self) -> Iter<'a, T>
     where
         T: 'a,
     {
