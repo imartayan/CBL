@@ -2,6 +2,7 @@ use crate::kmer::{Base, Kmer, RawKmer};
 use crate::necklace::{necklace_pos, queue::NecklaceQueue};
 use crate::wordset::*;
 use core::cmp::min;
+use core::ops::*;
 use std::collections::BTreeMap;
 
 pub struct CBL<const K: usize, KT: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
@@ -155,6 +156,62 @@ macro_rules! impl_cbl {
                 Self::new()
             }
         }
+
+        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitOrAssign<&mut Self>
+            for CBL<K, $KT, PREFIX_BITS, M>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            fn bitor_assign(&mut self, other: &mut Self) {
+                self.wordset |= &mut other.wordset;
+            }
+        }
+
+        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitAndAssign<&mut Self>
+            for CBL<K, $KT, PREFIX_BITS, M>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            fn bitand_assign(&mut self, other: &mut Self) {
+                self.wordset &= &mut other.wordset;
+            }
+        }
+
+        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> SubAssign<&mut Self>
+            for CBL<K, $KT, PREFIX_BITS, M>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            fn sub_assign(&mut self, other: &mut Self) {
+                self.wordset -= &mut other.wordset;
+            }
+        }
+
+        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitXorAssign<&mut Self>
+            for CBL<K, $KT, PREFIX_BITS, M>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            fn bitxor_assign(&mut self, other: &mut Self) {
+                self.wordset ^= &mut other.wordset;
+            }
+        }
     };
 }
 
@@ -223,5 +280,80 @@ mod tests {
             );
         }
         assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_union() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        let mut nucs2 = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+            nucs2.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        let mut set2 = CBL::<K, T>::new();
+        set.insert_seq(&nucs);
+        set2.insert_seq(&nucs2);
+        set |= &mut set2;
+        assert!(set.contains_seq(&nucs).iter().all(|&b| b));
+        assert!(set.contains_seq(&nucs2).iter().all(|&b| b));
+    }
+
+    #[test]
+    fn test_intersection() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        let mut nucs2 = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+            nucs2.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        let mut set2 = CBL::<K, T>::new();
+        set.insert_seq(&nucs);
+        set2.insert_seq(&nucs2);
+        set &= &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(set.contains(kmer), set2.contains(kmer));
+        }
+    }
+
+    #[test]
+    fn test_difference() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        let mut nucs2 = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+            nucs2.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        let mut set2 = CBL::<K, T>::new();
+        set.insert_seq(&nucs);
+        set2.insert_seq(&nucs2);
+        set -= &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(set.contains(kmer), !set2.contains(kmer));
+        }
+    }
+
+    #[test]
+    fn test_symmetric_difference() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        let mut nucs2 = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+            nucs2.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new();
+        let mut set2 = CBL::<K, T>::new();
+        set.insert_seq(&nucs);
+        set2.insert_seq(&nucs2);
+        set ^= &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(set.contains(kmer), !set2.contains(kmer));
+        }
     }
 }
