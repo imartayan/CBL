@@ -45,8 +45,8 @@ impl Bitvector {
     }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = usize> + '_ {
-        RankBVIterator {
+    pub fn iter(&self) -> BitvectorIterator {
+        BitvectorIterator {
             bitvector: &self.bv,
             block_index: 0,
             block: self.bv.get_block(0),
@@ -54,13 +54,13 @@ impl Bitvector {
     }
 }
 
-struct RankBVIterator<'a> {
+pub struct BitvectorIterator<'a> {
     bitvector: &'a UniquePtr<RankBV>,
     block_index: usize,
     block: u64,
 }
 
-impl<'a> Iterator for RankBVIterator<'a> {
+impl<'a> Iterator for BitvectorIterator<'a> {
     type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
         let num_blocks = self.bitvector.num_blocks();
