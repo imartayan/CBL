@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-pub mod minimizer;
-pub mod queue;
+pub(crate) mod minimizer;
+mod queue;
 pub mod rank;
 
 use crate::kmer::{Base, Kmer};
 use num_traits::int::PrimInt;
-use queue::NecklaceQueue;
+pub use queue::NecklaceQueue;
 
 pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
     let mut necklace = word;
@@ -20,6 +20,11 @@ pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
         }
     }
     (necklace, pos)
+}
+
+#[inline]
+pub fn revert_necklace_pos<const BITS: usize, T: PrimInt>(necklace: T, pos: usize) -> T {
+    ((necklace << (BITS - pos)) & ((T::one() << BITS) - T::one())) | (necklace >> pos)
 }
 
 #[derive(Debug)]
@@ -86,6 +91,16 @@ mod tests {
     type T = u32;
     const M: usize = 9;
     const WIDTH: usize = BITS - M + 1;
+
+    #[test]
+    fn test_necklace_revert() {
+        let mut rng = thread_rng();
+        for _ in 0..N {
+            let word: T = rng.gen::<T>() >> 1;
+            let (necklace, pos) = necklace_pos::<BITS, T>(word);
+            assert_eq!(revert_necklace_pos::<BITS, T>(necklace, pos), word);
+        }
+    }
 
     #[test]
     fn test_same_necklace() {
