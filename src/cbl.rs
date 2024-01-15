@@ -44,6 +44,10 @@ macro_rules! impl_cbl {
                 }
             }
 
+            pub fn count(&self) -> usize {
+                self.wordset.count()
+            }
+
             #[inline]
             pub fn is_empty(&self) -> bool {
                 self.wordset.is_empty()
