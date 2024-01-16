@@ -56,7 +56,7 @@ You can compile the examples with
 cargo +nightly build --release --examples
 ```
 
-By default, the examples are compiled with a fixed `K` equal to 31, you can compile them with a different `K` as follows
+By default, the examples are compiled with a fixed `K` equal to 25, you can compile them with a different `K` as follows
 ```sh
 K=59 cargo +nightly build --release --examples
 ```
@@ -65,5 +65,5 @@ K=59 cargo +nightly build --release --examples
 
 You can run all the tests with
 ```sh
-cargo +nightly test
+cargo +nightly test --lib
 ```
