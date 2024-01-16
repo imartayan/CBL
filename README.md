@@ -37,6 +37,15 @@ apt install -y libstdc++-12-dev libclang-dev
 
 ## Using the library with cargo
 
+You can add `CBL` in an existing Rust project with
+```sh
+cargo +nightly add --git https://github.com/imartayan/CBL.git
+```
+or by adding the following dependency in your `Cargo.toml`
+```toml
+cbl = { git = https://github.com/imartayan/CBL.git }
+```
+
 ## Building from source
 
 You can clone the repository and its submodules with
