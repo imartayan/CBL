@@ -28,6 +28,11 @@ where
     const SUFFIX_BITS: usize = SUFFIX_BITS;
 
     pub fn new() -> Self {
+        assert!(
+            PREFIX_BITS <= 28,
+            "PREFIX_BITS={PREFIX_BITS} but it should be ≤ 28"
+        );
+        assert!(SUFFIX_BITS > 0, "SUFFIX_BITS should be ≠ 0");
         Self {
             prefixes: Bitvector::new_with_bitlength(Self::PREFIX_BITS),
             tiered: TieredVec28::new().within_unique_ptr(),
