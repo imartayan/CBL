@@ -5,7 +5,7 @@ use core::cmp::min;
 use core::ops::*;
 use std::collections::BTreeMap;
 
-pub struct CBL<const K: usize, KT: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
+pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
 where
     [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
         .saturating_sub(PREFIX_BITS)
@@ -17,12 +17,12 @@ where
         PREFIX_BITS,
         { (2 * K + (2 * K).next_power_of_two().ilog2() as usize).saturating_sub(PREFIX_BITS) },
     >,
-    necklace_queue: NecklaceQueue<{ 2 * K }, KT, { (2 * K).saturating_sub(M - 1) }>,
+    necklace_queue: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }>,
 }
 
 macro_rules! impl_cbl {
-    ($KT:ty) => {
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> CBL<K, $KT, PREFIX_BITS, M>
+    ($T:ty) => {
+        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -36,11 +36,8 @@ macro_rules! impl_cbl {
             pub fn new() -> Self {
                 Self {
                     wordset: WordSet::new(),
-                    necklace_queue: NecklaceQueue::<
-                        { 2 * K },
-                        $KT,
-                        { (2 * K).saturating_sub(M - 1) },
-                    >::new(),
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
                 }
             }
 
@@ -54,43 +51,43 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            fn merge_necklace_pos(necklace: $KT, pos: usize) -> $KT {
-                necklace * Self::KMER_BITS as $KT + pos as $KT
-                // (necklace << P) | (pos as $KT)
+            fn merge_necklace_pos(necklace: $T, pos: usize) -> $T {
+                necklace * Self::KMER_BITS as $T + pos as $T
+                // (necklace << P) | (pos as $T)
             }
 
             #[inline]
-            fn split_necklace_pos(word: $KT) -> ($KT, usize) {
+            fn split_necklace_pos(word: $T) -> ($T, usize) {
                 (
-                    word / (Self::KMER_BITS as $KT),
-                    (word % (Self::KMER_BITS as $KT)) as usize,
+                    word / (Self::KMER_BITS as $T),
+                    (word % (Self::KMER_BITS as $T)) as usize,
                 )
             }
 
             #[inline]
-            fn get_word<KmerT: Kmer<K, $KT>>(kmer: KmerT) -> $KT {
-                let (necklace, pos) = necklace_pos::<{ 2 * K }, $KT>(kmer.to_int());
+            fn get_word<KmerT: Kmer<K, $T>>(kmer: KmerT) -> $T {
+                let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(kmer.to_int());
                 Self::merge_necklace_pos(necklace, pos)
             }
 
             #[inline]
-            fn recover_kmer(word: $KT) -> RawKmer<K, $KT> {
+            fn recover_kmer(word: $T) -> RawKmer<K, $T> {
                 let (necklace, pos) = Self::split_necklace_pos(word);
-                RawKmer::<K, $KT>::from_int(revert_necklace_pos::<{ 2 * K }, $KT>(necklace, pos))
+                RawKmer::<K, $T>::from_int(revert_necklace_pos::<{ 2 * K }, $T>(necklace, pos))
             }
 
             #[inline]
-            pub fn contains<KmerT: Kmer<K, $KT>>(&self, kmer: KmerT) -> bool {
+            pub fn contains<KmerT: Kmer<K, $T>>(&self, kmer: KmerT) -> bool {
                 self.wordset.contains(Self::get_word(kmer))
             }
 
             #[inline]
-            pub fn insert<KmerT: Kmer<K, $KT>>(&mut self, kmer: KmerT) -> bool {
+            pub fn insert<KmerT: Kmer<K, $T>>(&mut self, kmer: KmerT) -> bool {
                 self.wordset.insert(Self::get_word(kmer))
             }
 
             #[inline]
-            pub fn remove<KmerT: Kmer<K, $KT>>(&mut self, kmer: KmerT) -> bool {
+            pub fn remove<KmerT: Kmer<K, $T>>(&mut self, kmer: KmerT) -> bool {
                 self.wordset.remove(Self::get_word(kmer))
             }
 
@@ -102,13 +99,13 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$KT> {
+            fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$T> {
                 let mut res = Vec::with_capacity(seq.len() - K + 1);
-                let kmer = RawKmer::<K, $KT>::from_nucs(&seq[..K]);
+                let kmer = RawKmer::<K, $T>::from_nucs(&seq[..K]);
                 self.necklace_queue.insert_full(kmer.to_int());
                 let (necklace, pos) = self.necklace_queue.get_necklace_pos();
                 res.push(Self::merge_necklace_pos(necklace, pos));
-                for base in seq[K..].iter().filter_map(<$KT>::from_nuc) {
+                for base in seq[K..].iter().filter_map(<$T>::from_nuc) {
                     self.necklace_queue.insert2(base);
                     let (necklace, pos) = self.necklace_queue.get_necklace_pos();
                     res.push(Self::merge_necklace_pos(necklace, pos));
@@ -146,8 +143,8 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            pub fn iter(&self) -> impl Iterator<Item = RawKmer<K, $KT>> + '_ {
-                self.wordset.iter::<$KT>().map(Self::recover_kmer)
+            pub fn iter(&self) -> impl Iterator<Item = RawKmer<K, $T>> + '_ {
+                self.wordset.iter::<$T>().map(Self::recover_kmer)
             }
 
             #[inline]
@@ -167,7 +164,7 @@ macro_rules! impl_cbl {
         }
 
         impl<const K: usize, const PREFIX_BITS: usize, const M: usize> Default
-            for CBL<K, $KT, PREFIX_BITS, M>
+            for CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -181,7 +178,7 @@ macro_rules! impl_cbl {
         }
 
         impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitOrAssign<&mut Self>
-            for CBL<K, $KT, PREFIX_BITS, M>
+            for CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -195,7 +192,7 @@ macro_rules! impl_cbl {
         }
 
         impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitAndAssign<&mut Self>
-            for CBL<K, $KT, PREFIX_BITS, M>
+            for CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -209,7 +206,7 @@ macro_rules! impl_cbl {
         }
 
         impl<const K: usize, const PREFIX_BITS: usize, const M: usize> SubAssign<&mut Self>
-            for CBL<K, $KT, PREFIX_BITS, M>
+            for CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -223,7 +220,7 @@ macro_rules! impl_cbl {
         }
 
         impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitXorAssign<&mut Self>
-            for CBL<K, $KT, PREFIX_BITS, M>
+            for CBL<K, $T, PREFIX_BITS, M>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
