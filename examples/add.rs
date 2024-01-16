@@ -10,7 +10,7 @@ pub mod constants {
     include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 }
 
-use constants::{K, KT};
+use constants::{K, NT};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -23,7 +23,7 @@ fn main() {
     let args = Args::parse();
     let input_filename = args.input.as_str();
 
-    let mut cbl = CBL::<K, KT>::new();
+    let mut cbl = CBL::<K, NT>::new();
     let reads = Fasta::from_file(input_filename);
 
     reads.process_rec(|rec| {
