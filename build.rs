@@ -14,7 +14,7 @@ fn build_constants() {
 
     println!("cargo:rerun-if-env-changed=K");
     let k: usize = std::env::var("K")
-        .unwrap_or_else(|_| "17".into())
+        .unwrap_or_else(|_| "25".into())
         .parse()
         .expect("Failed to parse K");
     assert!(k >= 1, "K must be ≥ 1");
@@ -44,12 +44,10 @@ fn build_constants() {
     code.push(format!("pub const POS_BITS: usize = {pos_bits};"));
 
     let necklace_pos_bits = kmer_bits + pos_bits;
-    code.push(format!(
-        "pub const NECKLACE_POS_BITS: usize = {necklace_pos_bits};"
-    ));
+    code.push(format!("pub const N_BITS: usize = {necklace_pos_bits};"));
 
-    // let npt = select_type(necklace_pos_bits);
-    // code.push(format!("pub type NPT = {npt};"));
+    let nt = select_type(necklace_pos_bits);
+    code.push(format!("pub type NT = {nt};"));
 
     std::fs::write(out_dir.join("constants.rs"), code.join("\n"))
         .expect("Failed to write const file");
