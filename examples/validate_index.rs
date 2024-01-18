@@ -37,6 +37,9 @@ fn main() {
     let mut reader = parse_fastx_file(&input_filename).expect("Failed to open input file");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");
-        assert!(cbl.contains_all(&seqrec.seq()));
+        assert!(
+            cbl.contains_all(&seqrec.seq()),
+            "Some k-mer is missing in the index"
+        );
     }
 }
