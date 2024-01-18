@@ -13,6 +13,8 @@ The `CBL` data structure supports the following operations:
 - symmetric difference of two sets with the `^` operator
 - (de)serialization with `serde`
 
+You can see some examples of how to use it in the `examples` folder.
+
 ## Requirements
 
 ### Rust nightly
@@ -59,7 +61,7 @@ If you did not use the `--recursive` flag, make sure to load the submodules with
 git submodule update --init --recursive
 ```
 
-### Compiling the examples
+### Running the examples
 
 You can compile the examples with
 ```sh
@@ -70,6 +72,12 @@ By default, the examples are compiled with a fixed `K` equal to 25, you can comp
 ```sh
 K=59 cargo +nightly build --release --examples
 ```
+
+Once compiled, the binaries will be located in `target/release/examples`.
+- `build_index <input>` creates an index containing the *k*-mers of a FASTA/Q file, and serialize it on disk.
+- `insert_index <index> <input>` add the *k*-mers of a FASTA/Q file to a given index.
+- `remove_index <index> <input>` remove the *k*-mers of a FASTA/Q file to a given index.
+- `validate_index <index> <input>` checks that all the *k*-mers of a FASTA/Q file are contained in a given index.
 
 ### Running the tests
 
