@@ -11,6 +11,7 @@ The `CBL` data structure supports the following operations:
 - intersection of two sets with the `&` operator
 - difference of two sets with the `-` operator
 - symmetric difference of two sets with the `^` operator
+- (de)serialization with `serde`
 
 ## Requirements
 
