@@ -1,7 +1,7 @@
 use bincode::serialize_into;
-use cbl::cbl::*;
-use cbl::reads::*;
+use cbl::CBL;
 use clap::Parser;
+use needletail::parse_fastx_file;
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -33,11 +33,11 @@ fn main() {
     };
 
     let mut cbl = CBL::<K, NT, PREFIX_BITS, M>::new();
-    let reads = Fasta::from_file(input_filename);
-
-    reads.process_rec(|rec| {
-        cbl.insert_seq(rec.seq());
-    });
+    let mut reader = parse_fastx_file(&input_filename).expect("Failed to open input file");
+    while let Some(record) = reader.next() {
+        let seqrec = record.expect("Invalid record");
+        cbl.insert_seq(&seqrec.seq());
+    }
 
     let output = File::create(output_filename).expect("Failed to open output file");
     let mut writer = BufWriter::new(output);

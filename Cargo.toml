@@ -22,6 +22,7 @@ miette = { version = "5", features = [
 bincode = "1.3.3"
 clap = { version = "4.4", features = ["derive"] }
 itertools = "0.12"
+needletail = "0.4"
 rand = "0.8"
 
 [profile.dev]
