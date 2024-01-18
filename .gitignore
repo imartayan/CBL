@@ -16,4 +16,6 @@ Cargo.lock
 .DS_Store
 *.fasta
 *.fa
-*.svg
+*.gz
+*.cbl
+flamegraph.svg

@@ -1,6 +1,6 @@
 # CBL
 
-A Rust library providing dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
+A Rust library providing fully dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
 
 The `CBL` data structure supports the following operations:
 - inserting a single *k*-mer with `insert`, or every *k*-mer from a sequence with `insert_seq`
