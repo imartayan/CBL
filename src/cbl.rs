@@ -1,4 +1,4 @@
-use crate::kmer::{Base, Kmer, RawKmer};
+use crate::kmer::{Base, IntKmer, Kmer};
 use crate::necklace::*;
 use crate::wordset::*;
 use core::cmp::min;
@@ -68,29 +68,29 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            fn get_word<KmerT: Kmer<K, $T>>(kmer: KmerT) -> $T {
+            fn get_word(kmer: IntKmer<K, $T>) -> $T {
                 let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(kmer.to_int());
                 Self::merge_necklace_pos(necklace, pos)
             }
 
             #[inline]
-            fn recover_kmer(word: $T) -> RawKmer<K, $T> {
+            fn recover_kmer(word: $T) -> IntKmer<K, $T> {
                 let (necklace, pos) = Self::split_necklace_pos(word);
-                RawKmer::<K, $T>::from_int(revert_necklace_pos::<{ 2 * K }, $T>(necklace, pos))
+                IntKmer::<K, $T>::from_int(revert_necklace_pos::<{ 2 * K }, $T>(necklace, pos))
             }
 
             #[inline]
-            pub fn contains<KmerT: Kmer<K, $T>>(&self, kmer: KmerT) -> bool {
+            pub fn contains(&self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.contains(Self::get_word(kmer))
             }
 
             #[inline]
-            pub fn insert<KmerT: Kmer<K, $T>>(&mut self, kmer: KmerT) -> bool {
+            pub fn insert(&mut self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.insert(Self::get_word(kmer))
             }
 
             #[inline]
-            pub fn remove<KmerT: Kmer<K, $T>>(&mut self, kmer: KmerT) -> bool {
+            pub fn remove(&mut self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.remove(Self::get_word(kmer))
             }
 
@@ -104,7 +104,7 @@ macro_rules! impl_cbl {
             #[inline]
             fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$T> {
                 let mut res = Vec::with_capacity(seq.len() - K + 1);
-                let kmer = RawKmer::<K, $T>::from_nucs(&seq[..K]);
+                let kmer = IntKmer::<K, $T>::from_nucs(&seq[..K]);
                 self.necklace_queue.insert_full(kmer.to_int());
                 let (necklace, pos) = self.necklace_queue.get_necklace_pos();
                 res.push(Self::merge_necklace_pos(necklace, pos));
@@ -158,7 +158,7 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            pub fn iter(&self) -> impl Iterator<Item = RawKmer<K, $T>> + '_ {
+            pub fn iter(&self) -> impl Iterator<Item = IntKmer<K, $T>> + '_ {
                 self.wordset.iter::<$T>().map(Self::recover_kmer)
             }
 
@@ -263,7 +263,7 @@ mod tests {
 
     const K: usize = 59;
     type T = u128;
-    type KmerT = RawKmer<K, T>;
+    type KmerT = IntKmer<K, T>;
     const N: usize = 1_000_000;
 
     #[test]

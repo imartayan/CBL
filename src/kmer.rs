@@ -131,7 +131,7 @@ where
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct RawKmer<const K: usize, T: Base>(T);
+pub struct IntKmer<const K: usize, T: Base>(T);
 
 macro_rules! impl_t {
 ($($T:ty),+) => {$(
@@ -156,7 +156,7 @@ macro_rules! impl_t {
         }
     }
 
-    impl<const K: usize> Kmer<K, $T> for RawKmer<K, $T> {
+    impl<const K: usize> Kmer<K, $T> for IntKmer<K, $T> {
         const MASK: $T = (1 << (2 * K)) - 1;
         #[inline(always)]
         fn from_int(s: $T) -> Self {
@@ -172,7 +172,7 @@ macro_rules! impl_t {
 impl_t!(u8, u16, u32, u64, u128);
 
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-impl<const K: usize> RevComp for RawKmer<K, u8> {
+impl<const K: usize> RevComp for IntKmer<K, u8> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x55) | (res & 0x55) << 1;
@@ -182,7 +182,7 @@ impl<const K: usize> RevComp for RawKmer<K, u8> {
 }
 
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-impl<const K: usize> RevComp for RawKmer<K, u16> {
+impl<const K: usize> RevComp for IntKmer<K, u16> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555) | (res & 0x5555) << 1;
@@ -192,7 +192,7 @@ impl<const K: usize> RevComp for RawKmer<K, u16> {
 }
 
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-impl<const K: usize> RevComp for RawKmer<K, u32> {
+impl<const K: usize> RevComp for IntKmer<K, u32> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555) | (res & 0x5555_5555) << 1;
@@ -202,7 +202,7 @@ impl<const K: usize> RevComp for RawKmer<K, u32> {
 }
 
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-impl<const K: usize> RevComp for RawKmer<K, u64> {
+impl<const K: usize> RevComp for IntKmer<K, u64> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555_5555_5555) | (res & 0x5555_5555_5555_5555) << 1;
@@ -212,7 +212,7 @@ impl<const K: usize> RevComp for RawKmer<K, u64> {
 }
 
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-impl<const K: usize> RevComp for RawKmer<K, u128> {
+impl<const K: usize> RevComp for IntKmer<K, u128> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555_5555_5555_5555_5555_5555_5555)
@@ -223,7 +223,7 @@ impl<const K: usize> RevComp for RawKmer<K, u128> {
 }
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-impl<const K: usize> RevComp for RawKmer<K, u8> {
+impl<const K: usize> RevComp for IntKmer<K, u8> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int();
         res = (res >> 4 & 0x0F) | (res & 0x0F) << 4;
@@ -234,7 +234,7 @@ impl<const K: usize> RevComp for RawKmer<K, u8> {
 }
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-impl<const K: usize> RevComp for RawKmer<K, u16> {
+impl<const K: usize> RevComp for IntKmer<K, u16> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F) | (res & 0x0F0F) << 4;
@@ -245,7 +245,7 @@ impl<const K: usize> RevComp for RawKmer<K, u16> {
 }
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-impl<const K: usize> RevComp for RawKmer<K, u32> {
+impl<const K: usize> RevComp for IntKmer<K, u32> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F) | (res & 0x0F0F_0F0F) << 4;
@@ -256,7 +256,7 @@ impl<const K: usize> RevComp for RawKmer<K, u32> {
 }
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-impl<const K: usize> RevComp for RawKmer<K, u64> {
+impl<const K: usize> RevComp for IntKmer<K, u64> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F_0F0F_0F0F) | (res & 0x0F0F_0F0F_0F0F_0F0F) << 4;
@@ -267,7 +267,7 @@ impl<const K: usize> RevComp for RawKmer<K, u64> {
 }
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-impl<const K: usize> RevComp for RawKmer<K, u128> {
+impl<const K: usize> RevComp for IntKmer<K, u128> {
     fn rev_comp(self) -> Self {
         let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F)
@@ -285,61 +285,61 @@ mod tests {
 
     #[test]
     fn test_rc_8() {
-        let kmer = RawKmer::<4, u8>::from_nucs(b"ATCG");
+        let kmer = IntKmer::<4, u8>::from_nucs(b"ATCG");
         assert_eq!(kmer.rev_comp().to_nucs(), *b"CGAT");
     }
     #[test]
     fn test_rc_16() {
-        let kmer = RawKmer::<4, u16>::from_nucs(b"ATCG");
+        let kmer = IntKmer::<4, u16>::from_nucs(b"ATCG");
         assert_eq!(kmer.rev_comp().to_nucs(), *b"CGAT");
     }
     #[test]
     fn test_rc_32() {
-        let kmer = RawKmer::<11, u32>::from_nucs(b"CATAATCCAGC");
+        let kmer = IntKmer::<11, u32>::from_nucs(b"CATAATCCAGC");
         assert_eq!(kmer.rev_comp().to_nucs(), *b"GCTGGATTATG");
     }
     #[test]
     fn test_rc_64() {
-        let kmer = RawKmer::<11, u64>::from_nucs(b"CATAATCCAGC");
+        let kmer = IntKmer::<11, u64>::from_nucs(b"CATAATCCAGC");
         assert_eq!(kmer.rev_comp().to_nucs(), *b"GCTGGATTATG");
     }
     #[test]
     fn test_rc_128() {
-        let kmer = RawKmer::<11, u128>::from_nucs(b"CATAATCCAGC");
+        let kmer = IntKmer::<11, u128>::from_nucs(b"CATAATCCAGC");
         assert_eq!(kmer.rev_comp().to_nucs(), *b"GCTGGATTATG");
     }
     #[test]
     fn rc_rc_8() {
         for i in 0..64 {
-            let kmer = RawKmer::<3, u8>::from_int(i);
+            let kmer = IntKmer::<3, u8>::from_int(i);
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
     #[test]
     fn rc_rc_16() {
         for i in 0..16384 {
-            let kmer = RawKmer::<7, u16>::from_int(i);
+            let kmer = IntKmer::<7, u16>::from_int(i);
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
     #[test]
     fn rc_rc_32() {
         for i in 0..1_000_000 {
-            let kmer = RawKmer::<15, u32>::from_int(i);
+            let kmer = IntKmer::<15, u32>::from_int(i);
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
     #[test]
     fn rc_rc_64() {
         for i in 0..1_000_000 {
-            let kmer = RawKmer::<15, u64>::from_int(i);
+            let kmer = IntKmer::<15, u64>::from_int(i);
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
     #[test]
     fn rc_rc_128() {
         for i in 0..1_000_000 {
-            let kmer = RawKmer::<15, u128>::from_int(i);
+            let kmer = IntKmer::<15, u128>::from_int(i);
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
