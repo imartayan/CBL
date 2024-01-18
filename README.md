@@ -75,8 +75,8 @@ K=59 cargo +nightly build --release --examples
 
 Once compiled, the binaries will be located in `target/release/examples`.
 - `build_index <input>` creates an index containing the *k*-mers of a FASTA/Q file, and serialize it on disk.
-- `insert_index <index> <input>` add the *k*-mers of a FASTA/Q file to a given index.
-- `remove_index <index> <input>` remove the *k*-mers of a FASTA/Q file to a given index.
+- `insert_index <index> <input>` adds the *k*-mers of a FASTA/Q file to a given index.
+- `remove_index <index> <input>` removes the *k*-mers of a FASTA/Q file to a given index.
 - `validate_index <index> <input>` checks that all the *k*-mers of a FASTA/Q file are contained in a given index.
 
 ### Running the tests
