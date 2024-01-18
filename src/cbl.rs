@@ -117,6 +117,18 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            pub fn contains_all(&mut self, seq: &[u8]) -> bool {
+                assert!(seq.len() >= K);
+                for chunk in Self::get_seq_chunks(seq) {
+                    let words = self.get_seq_words(chunk);
+                    if !self.wordset.contains_all(&words) {
+                        return false;
+                    }
+                }
+                true
+            }
+
+            #[inline]
             pub fn contains_seq(&mut self, seq: &[u8]) -> Vec<bool> {
                 assert!(seq.len() >= K);
                 let mut res = Vec::with_capacity(seq.len() - K + 1);

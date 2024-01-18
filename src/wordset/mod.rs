@@ -122,6 +122,30 @@ where
         present
     }
 
+    pub fn contains_all<T: PrimInt + Unsigned + AsPrimitive<usize>>(
+        &mut self,
+        words: &[T],
+    ) -> bool {
+        let prefixes_suffixes: Vec<_> = words
+            .iter()
+            .map(|&word| Self::split_prefix_suffix(word))
+            .collect();
+        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+            let prefix = group[0].0;
+            if !self.prefixes.contains(prefix) {
+                return false;
+            }
+            let rank = self.prefixes.rank(prefix);
+            let id = self.tiered.get(rank) as usize;
+            for (_, suffix) in group.iter() {
+                if !self.suffix_containers[id].contains(suffix) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
     pub fn contains_batch<T: PrimInt + Unsigned + AsPrimitive<usize>>(
         &mut self,
         words: &[T],
