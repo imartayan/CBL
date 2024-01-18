@@ -30,11 +30,11 @@ fn main() {
     let index_filename = args.index.as_str();
     let input_filename = args.input.as_str();
 
-    let index = File::open(&index_filename).expect("Failed to open index file");
+    let index = File::open(index_filename).expect("Failed to open index file");
     let reader = BufReader::new(index);
     let mut cbl: CBL<K, NT, PREFIX_BITS, M> = deserialize_from(reader).unwrap();
 
-    let mut reader = parse_fastx_file(&input_filename).expect("Failed to open input file");
+    let mut reader = parse_fastx_file(input_filename).expect("Failed to open input file");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");
         assert!(

@@ -33,13 +33,13 @@ fn main() {
     };
 
     let mut cbl = CBL::<K, NT, PREFIX_BITS, M>::new();
-    let mut reader = parse_fastx_file(&input_filename).expect("Failed to open input file");
+    let mut reader = parse_fastx_file(input_filename).expect("Failed to open input file");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");
         cbl.insert_seq(&seqrec.seq());
     }
 
-    let output = File::create(&output_filename).expect("Failed to open output file");
+    let output = File::create(output_filename).expect("Failed to open output file");
     let mut writer = BufWriter::new(output);
     serialize_into(&mut writer, &cbl).unwrap();
 }
