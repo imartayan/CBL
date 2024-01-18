@@ -8,7 +8,11 @@ use core::slice::Iter;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
-use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{MapAccess, Visitor},
+    ser::SerializeMap,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use std::collections::{btree_map::Entry::Vacant, BTreeMap};
 
 pub struct WordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
@@ -318,13 +322,44 @@ where
     }
 }
 
+struct WordSetVisitor<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> {}
+
+impl<'de, const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Visitor<'de>
+    for WordSetVisitor<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    type Value = WordSet<PREFIX_BITS, SUFFIX_BITS>;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        formatter.write_str("an integer sliced into bytes")
+    }
+
+    fn visit_map<M: MapAccess<'de>>(self, mut access: M) -> Result<Self::Value, M::Error> {
+        let mut wordset = WordSet {
+            prefixes: Bitvector::new_with_bitlength(PREFIX_BITS),
+            tiered: TieredVec28::new().within_unique_ptr(),
+            suffix_containers: Vec::with_capacity(access.size_hint().unwrap_or(0)),
+            empty_containers: Vec::new(),
+        };
+        while let Some((prefix, suffix_container)) = access.next_entry()? {
+            let rank = wordset.suffix_containers.len();
+            wordset.prefixes.insert(prefix);
+            wordset.tiered.insert(rank, rank as u32);
+            wordset.suffix_containers.push(suffix_container);
+        }
+
+        Ok(wordset)
+    }
+}
+
 impl<'de, const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Deserialize<'de>
     for WordSet<PREFIX_BITS, SUFFIX_BITS>
 where
     [(); SUFFIX_BITS.div_ceil(8)]:,
 {
-    fn deserialize<D: Deserializer<'de>>(_deserializer: D) -> Result<Self, D::Error> {
-        todo!()
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_map(WordSetVisitor {})
     }
 }
 
