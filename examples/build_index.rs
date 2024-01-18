@@ -39,7 +39,7 @@ fn main() {
         cbl.insert_seq(&seqrec.seq());
     }
 
-    let output = File::create(output_filename).expect("Failed to open output file");
+    let output = File::create(&output_filename).expect("Failed to open output file");
     let mut writer = BufWriter::new(output);
     serialize_into(&mut writer, &cbl).unwrap();
 }
