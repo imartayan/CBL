@@ -3,8 +3,10 @@ use crate::necklace::*;
 use crate::wordset::*;
 use core::cmp::min;
 use core::ops::*;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[derive(Serialize, Deserialize)]
 pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
 where
     [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
@@ -17,6 +19,7 @@ where
         PREFIX_BITS,
         { (2 * K + (2 * K).next_power_of_two().ilog2() as usize).saturating_sub(PREFIX_BITS) },
     >,
+    #[serde(skip)]
     necklace_queue: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }>,
 }
 

@@ -2,7 +2,7 @@ use super::minimizer::LexMinQueue;
 use core::cmp::min;
 use num_traits::int::PrimInt;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NecklaceQueue<const BITS: usize, T: PrimInt, const WIDTH: usize> {
     word: T,
     min_queue: LexMinQueue<WIDTH, T>,
@@ -63,12 +63,6 @@ impl<const BITS: usize, const WIDTH: usize> NecklaceQueue<BITS, $T, WIDTH> {
     pub fn insert2(&mut self, x: $T) {
         self.word = ((self.word << 2) & Self::MASK) | (x & 0b11);
         self.min_queue.insert2((self.word >> 1) & Self::MIN_MASK, self.word & Self::MIN_MASK);
-    }
-}
-
-impl<const BITS: usize, const WIDTH: usize> Default for NecklaceQueue<BITS, $T, WIDTH> {
-    fn default() -> Self {
-    Self::new()
     }
 }
 )*}}

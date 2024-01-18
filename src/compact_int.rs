@@ -5,6 +5,7 @@
 use core::cmp::Ordering;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -81,6 +82,32 @@ impl<const BYTES: usize> PartialOrd for CompactInt<BYTES> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<const BYTES: usize> Serialize for CompactInt<BYTES> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bytes(&self.0)
+    }
+}
+
+struct CompactIntVisitor<const BYTES: usize> {}
+
+impl<'de, const BYTES: usize> Visitor<'de> for CompactIntVisitor<BYTES> {
+    type Value = CompactInt<BYTES>;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        formatter.write_str("an integer sliced into bytes")
+    }
+
+    fn visit_bytes<E: std::error::Error>(self, bytes: &[u8]) -> Result<Self::Value, E> {
+        Ok(CompactInt::from_bytes(bytes))
+    }
+}
+
+impl<'de, const BYTES: usize> Deserialize<'de> for CompactInt<BYTES> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_bytes(CompactIntVisitor {})
     }
 }
 

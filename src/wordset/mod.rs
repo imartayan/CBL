@@ -8,6 +8,7 @@ use core::slice::Iter;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
+use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::{btree_map::Entry::Vacant, BTreeMap};
 
 pub struct WordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
@@ -299,6 +300,31 @@ where
         let suffix: T = self.suffix?.get();
         self.suffix = self.suffix_iter.next();
         Some((prefix << SUFFIX_BITS) | suffix)
+    }
+}
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Serialize
+    for WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.tiered.len()))?;
+        for (rank, prefix) in self.prefixes.iter().enumerate() {
+            let id = self.tiered.get(rank) as usize;
+            map.serialize_entry(&prefix, &self.suffix_containers[id])?;
+        }
+        map.end()
+    }
+}
+
+impl<'de, const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Deserialize<'de>
+    for WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    fn deserialize<D: Deserializer<'de>>(_deserializer: D) -> Result<Self, D::Error> {
+        todo!()
     }
 }
 

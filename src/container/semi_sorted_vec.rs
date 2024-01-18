@@ -2,8 +2,9 @@ use super::Container;
 use core::cmp::Ordering;
 use core::ops::*;
 use core::slice::Iter;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SemiSortedVec<T: Ord, const THRESHOLD: usize> {
     vec: Vec<T>,
 }
