@@ -16,7 +16,7 @@ use constants::{K, M, NT, PREFIX_BITS};
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Input file (.fasta, .fa)
+    /// Input file (FASTA/Q, possibly gzipped)
     input: String,
     /// Output file (defaults to <input>.cbl)
     #[arg(short, long)]
