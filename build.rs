@@ -22,15 +22,6 @@ fn build_constants() {
     assert!(k % 2 == 1, "K must be odd");
     code.push(format!("pub const K: usize = {k};"));
 
-    println!("cargo:rerun-if-env-changed=M");
-    let m: usize = std::env::var("M")
-        .unwrap_or_else(|_| "9".into())
-        .parse()
-        .expect("Failed to parse M");
-    assert!(m >= 1, "M must be ≥ 1");
-    assert!(m <= k, "M must be ≤ K (here M={m} > K={k})");
-    code.push(format!("pub const M: usize = {m};"));
-
     let kmer_bits = 2 * k;
     code.push(format!("pub const KMER_BITS: usize = {kmer_bits};"));
 
@@ -48,6 +39,27 @@ fn build_constants() {
 
     let nt = select_type(necklace_pos_bits);
     code.push(format!("pub type NT = {nt};"));
+
+    println!("cargo:rerun-if-env-changed=PREFIX_BITS");
+    let prefix_bits: usize = std::env::var("PREFIX_BITS")
+        .unwrap_or_else(|_| "24".into())
+        .parse()
+        .expect("Failed to parse PREFIX_BITS");
+    assert!(prefix_bits >= 1, "PREFIX_BITS must be ≥ 1");
+    assert!(
+        prefix_bits < kmer_bits,
+        "PREFIX_BITS must be < 2*K (here PREFIX_BITS={prefix_bits} ≥ 2*K={kmer_bits})"
+    );
+    code.push(format!("pub const PREFIX_BITS: usize = {prefix_bits};"));
+
+    println!("cargo:rerun-if-env-changed=M");
+    let m: usize = std::env::var("M")
+        .unwrap_or_else(|_| "9".into())
+        .parse()
+        .expect("Failed to parse M");
+    assert!(m >= 1, "M must be ≥ 1");
+    assert!(m <= k, "M must be ≤ K (here M={m} > K={k})");
+    code.push(format!("pub const M: usize = {m};"));
 
     std::fs::write(out_dir.join("constants.rs"), code.join("\n"))
         .expect("Failed to write const file");
