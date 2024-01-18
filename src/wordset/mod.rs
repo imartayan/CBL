@@ -209,7 +209,7 @@ where
         usize: AsPrimitive<T>,
     {
         WordSetIterator {
-            wordset: &self,
+            wordset: self,
             prefix_iter: self.prefixes.iter(),
             prefix: None,
             suffix_iter: [].iter(),

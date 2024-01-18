@@ -34,7 +34,6 @@ where
                 rank += 1;
             }
         }
-        drop(prefix_iter);
         self.prefixes |= &other.prefixes;
     }
 }
@@ -73,7 +72,6 @@ where
                 prefix = prefix_iter.next();
             }
         }
-        drop(prefix_iter);
         self.prefixes &= &other.prefixes;
         for prefix in empty_prefixes {
             self.prefixes.remove(prefix);
@@ -113,7 +111,6 @@ where
                 prefix = prefix_iter.next();
             }
         }
-        drop(prefix_iter);
         self.prefixes -= &other.prefixes;
         for prefix in nonempty_prefixes {
             self.prefixes.insert(prefix);
@@ -161,7 +158,6 @@ where
                 rank += 1;
             }
         }
-        drop(prefix_iter);
         self.prefixes ^= &other.prefixes;
         for prefix in nonempty_prefixes {
             self.prefixes.insert(prefix);
