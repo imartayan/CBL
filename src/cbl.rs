@@ -190,13 +190,13 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
-            pub fn suffix_load(&self) -> f64 {
-                self.wordset.suffix_load()
+            pub fn buckets_sizes(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+                self.wordset.buckets_sizes()
             }
 
             #[inline]
-            pub fn suffix_load_repartition(&self) -> BTreeMap<usize, f64> {
-                self.wordset.suffix_load_repartition()
+            pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
+                self.wordset.buckets_load_repartition()
             }
         }
 

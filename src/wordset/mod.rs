@@ -250,31 +250,27 @@ where
         self.tiered.len() as f64 / (1 << Self::PREFIX_BITS) as f64
     }
 
-    pub fn suffix_load(&self) -> f64 {
-        let total_size: usize = self
-            .suffix_containers
-            .iter()
-            .map(|container| container.len())
-            .sum();
-        total_size as f64 / self.suffix_containers.len() as f64
+    pub fn buckets_sizes(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.prefixes.iter().enumerate().map(|(rank, prefix)| {
+            let id = self.tiered.get(rank) as usize;
+            (prefix, self.suffix_containers[id].len())
+        })
     }
 
-    pub fn suffix_load_repartition(&self) -> BTreeMap<usize, f64> {
+    pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
+        let mut total_size = 0;
         let mut size_count = BTreeMap::new();
-        for size in self
-            .suffix_containers
-            .iter()
-            .map(|container| container.len())
-        {
+        for (_, size) in self.buckets_sizes() {
+            total_size += size;
             if let Vacant(e) = size_count.entry(size) {
-                e.insert(1usize);
+                e.insert(size);
             } else {
-                *size_count.get_mut(&size).unwrap() += 1;
+                *size_count.get_mut(&size).unwrap() += size;
             }
         }
         size_count
             .iter()
-            .map(|(&k, &v)| (k, v as f64 / self.suffix_containers.len() as f64))
+            .map(|(&size, &count)| (size, count as f64 / total_size as f64))
             .collect()
     }
 }
