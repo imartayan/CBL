@@ -35,7 +35,7 @@ rustup default nightly
 This library uses C++ bindings for the [sux](https://github.com/vigna/sux) library and [tiered vectors](https://github.com/mettienne/tiered-vector).
 Depending on your configuration, some headers used for the bindings might be missing, in that case please install the following packages
 ```sh
-apt install -y libstdc++-12-dev libclang-dev
+sudo apt install -y libstdc++-12-dev libclang-dev
 ```
 
 ## Using the library with cargo
