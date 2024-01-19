@@ -14,7 +14,7 @@ pub mod constants {
     include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 }
 
-use constants::{K, M, NT, PREFIX_BITS};
+use constants::{K, PREFIX_BITS, T};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -32,7 +32,7 @@ fn main() {
 
     let index = File::open(index_filename).expect("Failed to open index file");
     let reader = BufReader::new(index);
-    let mut cbl: CBL<K, NT, PREFIX_BITS, M> = deserialize_from(reader).unwrap();
+    let mut cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
 
     let mut reader = parse_fastx_file(input_filename).expect("Failed to open input file");
     while let Some(record) = reader.next() {

@@ -11,7 +11,7 @@ pub mod constants {
     include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 }
 
-use constants::{K, M, NT, PREFIX_BITS};
+use constants::{K, PREFIX_BITS, T};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -32,7 +32,7 @@ fn main() {
         input_filename.to_owned() + ".cbl"
     };
 
-    let mut cbl = CBL::<K, NT, PREFIX_BITS, M>::new();
+    let mut cbl = CBL::<K, T, PREFIX_BITS>::new();
     let mut reader = parse_fastx_file(input_filename).expect("Failed to open input file");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");

@@ -6,8 +6,10 @@ use core::ops::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+const M: usize = 9;
+
 #[derive(Serialize, Deserialize)]
-pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24, const M: usize = 9>
+pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24>
 where
     [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
         .saturating_sub(PREFIX_BITS)
@@ -25,7 +27,7 @@ where
 
 macro_rules! impl_cbl {
     ($T:ty) => {
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -118,7 +120,12 @@ macro_rules! impl_cbl {
 
             #[inline]
             pub fn contains_all(&mut self, seq: &[u8]) -> bool {
-                assert!(seq.len() >= K);
+                assert!(
+                    seq.len() >= K,
+                    "Sequence size ({}) is smaller than K ({})",
+                    seq.len(),
+                    K
+                );
                 for chunk in Self::get_seq_chunks(seq) {
                     let words = self.get_seq_words(chunk);
                     if !self.wordset.contains_all(&words) {
@@ -130,7 +137,12 @@ macro_rules! impl_cbl {
 
             #[inline]
             pub fn contains_seq(&mut self, seq: &[u8]) -> Vec<bool> {
-                assert!(seq.len() >= K);
+                assert!(
+                    seq.len() >= K,
+                    "Sequence size ({}) is smaller than K ({})",
+                    seq.len(),
+                    K
+                );
                 let mut res = Vec::with_capacity(seq.len() - K + 1);
                 for chunk in Self::get_seq_chunks(seq) {
                     let words = self.get_seq_words(chunk);
@@ -141,7 +153,12 @@ macro_rules! impl_cbl {
 
             #[inline]
             pub fn insert_seq(&mut self, seq: &[u8]) {
-                assert!(seq.len() >= K);
+                assert!(
+                    seq.len() >= K,
+                    "Sequence size ({}) is smaller than K ({})",
+                    seq.len(),
+                    K
+                );
                 for chunk in Self::get_seq_chunks(seq) {
                     let words = self.get_seq_words(chunk);
                     self.wordset.insert_batch(&words);
@@ -150,7 +167,12 @@ macro_rules! impl_cbl {
 
             #[inline]
             pub fn remove_seq(&mut self, seq: &[u8]) {
-                assert!(seq.len() >= K);
+                assert!(
+                    seq.len() >= K,
+                    "Sequence size ({}) is smaller than K ({})",
+                    seq.len(),
+                    K
+                );
                 for chunk in Self::get_seq_chunks(seq) {
                     let words = self.get_seq_words(chunk);
                     self.wordset.remove_batch(&words);
@@ -178,8 +200,7 @@ macro_rules! impl_cbl {
             }
         }
 
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> Default
-            for CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> Default for CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -192,8 +213,8 @@ macro_rules! impl_cbl {
             }
         }
 
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitOrAssign<&mut Self>
-            for CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> BitOrAssign<&mut Self>
+            for CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -206,8 +227,8 @@ macro_rules! impl_cbl {
             }
         }
 
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitAndAssign<&mut Self>
-            for CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> BitAndAssign<&mut Self>
+            for CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -220,8 +241,8 @@ macro_rules! impl_cbl {
             }
         }
 
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> SubAssign<&mut Self>
-            for CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> SubAssign<&mut Self>
+            for CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
@@ -234,8 +255,8 @@ macro_rules! impl_cbl {
             }
         }
 
-        impl<const K: usize, const PREFIX_BITS: usize, const M: usize> BitXorAssign<&mut Self>
-            for CBL<K, $T, PREFIX_BITS, M>
+        impl<const K: usize, const PREFIX_BITS: usize> BitXorAssign<&mut Self>
+            for CBL<K, $T, PREFIX_BITS>
         where
             [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
                 .saturating_sub(PREFIX_BITS)
