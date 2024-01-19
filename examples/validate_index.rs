@@ -30,16 +30,19 @@ fn main() {
     let index_filename = args.index.as_str();
     let input_filename = args.input.as_str();
 
-    let index = File::open(index_filename).expect("Failed to open index file");
+    let index = File::open(index_filename).expect("Failed to open {index_filename}");
     let reader = BufReader::new(index);
+    eprintln!("Reading the index stored in {index_filename}");
     let mut cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
 
-    let mut reader = parse_fastx_file(input_filename).expect("Failed to open input file");
+    let mut reader = parse_fastx_file(input_filename).expect("Failed to open {input_filename}");
+    eprintln!("Checking that the index contains every {K}-mers from {input_filename}");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");
-        assert!(
-            cbl.contains_all(&seqrec.seq()),
-            "Some k-mer is missing in the index"
-        );
+        if !cbl.contains_all(&seqrec.seq()) {
+            eprintln!("Some {K}-mers are missing");
+            return;
+        }
     }
+    eprintln!("All {K}-mers are present");
 }
