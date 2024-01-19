@@ -59,7 +59,7 @@ Therefore `T` should be large enough to store $2k + \lg(2k)$ bits.
 In particular, since primitive integers cannot store more than 128 bits, this means that `K` must be ≤ 59.
 
 Additionally, you can specify a third (optional) parameter `PREFIX_BITS` which determines the size of the underlying bitvector.
-Changing this parameters affects the space usage and the query time of the data structure, see the paper for more details.
+Changing this parameter affects the space usage and the query time of the data structure, see the paper for more details.
 
 ## Building from source
 
@@ -88,7 +88,7 @@ K=59 cargo +nightly build --release --examples
 Note that `K` values ≥ 60 are not supported by this library.
 
 Once compiled, the binaries will be located in `target/release/examples`.
-- `build_index <input>` creates an index containing the *k*-mers of a FASTA/Q file, and serialize it on disk.
+- `build_index <input>` creates an index containing the *k*-mers of a FASTA/Q file, and serializes it on disk.
 - `insert_index <index> <input>` adds the *k*-mers of a FASTA/Q file to a given index.
 - `remove_index <index> <input>` removes the *k*-mers of a FASTA/Q file to a given index.
 - `validate_index <index> <input>` checks that all the *k*-mers of a FASTA/Q file are contained in a given index.
