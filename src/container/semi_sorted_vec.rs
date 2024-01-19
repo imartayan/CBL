@@ -21,24 +21,6 @@ impl<T: Ord, const THRESHOLD: usize> Container<T> for SemiSortedVec<T, THRESHOLD
     }
 
     #[inline]
-    fn from_vec(mut vec: Vec<T>) -> Self {
-        if vec.len() >= THRESHOLD {
-            vec.sort_unstable();
-        }
-        Self { vec }
-    }
-
-    #[inline]
-    unsafe fn from_vec_unchecked(vec: Vec<T>) -> Self {
-        Self { vec }
-    }
-
-    #[inline]
-    fn to_vec(self) -> Vec<T> {
-        self.vec
-    }
-
-    #[inline]
     fn len(&self) -> usize {
         self.vec.len()
     }
@@ -148,7 +130,7 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitOr<Self> for &mut SemiSortedVec<T
             vec.push(*b);
             y = other_iter.next();
         }
-        unsafe { Self::Output::from_vec_unchecked(vec) }
+        Self::Output { vec }
     }
 }
 
@@ -182,7 +164,7 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitAnd<Self> for &mut SemiSortedVec<
                 }
             }
         }
-        unsafe { Self::Output::from_vec_unchecked(vec) }
+        Self::Output { vec }
     }
 }
 
@@ -220,7 +202,7 @@ impl<T: Copy + Ord, const THRESHOLD: usize> Sub<Self> for &mut SemiSortedVec<T, 
             vec.push(*a);
             x = self_iter.next();
         }
-        unsafe { Self::Output::from_vec_unchecked(vec) }
+        Self::Output { vec }
     }
 }
 
@@ -263,7 +245,7 @@ impl<T: Copy + Ord, const THRESHOLD: usize> BitXor<Self> for &mut SemiSortedVec<
             vec.push(*b);
             y = other_iter.next();
         }
-        unsafe { Self::Output::from_vec_unchecked(vec) }
+        Self::Output { vec }
     }
 }
 

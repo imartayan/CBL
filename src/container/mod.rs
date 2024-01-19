@@ -10,9 +10,6 @@ pub use semi_sorted_vec::SemiSortedVec;
 pub trait Container<T> {
     fn new() -> Self;
     fn new_with_one(x: T) -> Self;
-    fn from_vec(vec: Vec<T>) -> Self;
-    unsafe fn from_vec_unchecked(vec: Vec<T>) -> Self;
-    fn to_vec(self) -> Vec<T>;
     fn len(&self) -> usize;
     #[inline]
     fn is_empty(&self) -> bool {
