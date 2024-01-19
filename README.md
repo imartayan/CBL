@@ -30,7 +30,7 @@ If you don't want to use the `+nightly` flag every time you run `cargo`, you can
 rustup default nightly
 ```
 
-### Extra headers for Linux
+### Additional headers for Linux
 
 This library uses C++ bindings for the [sux](https://github.com/vigna/sux) library and [tiered vectors](https://github.com/mettienne/tiered-vector).
 Depending on your configuration, some headers used for the bindings might be missing, in that case please install the following packages
@@ -79,6 +79,7 @@ You can compile the examples with
 ```sh
 cargo +nightly build --release --examples
 ```
+If the build fails, try to install [additional headers](#additional-headers-for-linux).
 
 By default, the examples are compiled with a fixed `K` equal to 25, you can compile them with a different `K` as follows
 ```sh
