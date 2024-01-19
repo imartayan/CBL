@@ -91,6 +91,7 @@ Once compiled, the binaries will be located in `target/release/examples`.
 - `insert_index <index> <input>` adds the *k*-mers of a FASTA/Q file to a given index.
 - `remove_index <index> <input>` removes the *k*-mers of a FASTA/Q file to a given index.
 - `validate_index <index> <input>` checks that all the *k*-mers of a FASTA/Q file are contained in a given index.
+
 Use the `--help` flag to see all the options available.
 
 ### Running the tests
