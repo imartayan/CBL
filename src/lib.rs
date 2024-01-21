@@ -9,6 +9,7 @@ pub(crate) mod container;
 pub(crate) mod ffi;
 pub mod kmer;
 pub(crate) mod necklace;
+pub(crate) mod trie;
 pub(crate) mod wordset;
 
 pub use cbl::CBL;
