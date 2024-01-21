@@ -1,6 +1,8 @@
 mod set_ops;
+mod tiny;
 
 use crate::ffi::{RankBV, UniquePtr, WithinUniquePtr};
+pub use tiny::*;
 
 pub struct Bitvector {
     bv: UniquePtr<RankBV>,
