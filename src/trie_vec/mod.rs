@@ -88,14 +88,14 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    pub fn insert_iter<I: ExactSizeIterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+    pub fn insert_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         for x in it {
             self.insert(x);
         }
     }
 
     #[inline]
-    pub fn remove_iter<I: ExactSizeIterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+    pub fn remove_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         for x in it {
             self.remove(&x);
         }
