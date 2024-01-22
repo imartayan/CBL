@@ -1,4 +1,4 @@
-// Adapted from https://github.com/Daniel-Liu-c0deb0t/simple-saca/blob/main/src/compact_vec.rs
+// Inspired by https://github.com/Daniel-Liu-c0deb0t/simple-saca/blob/main/src/compact_vec.rs
 
 #![allow(dead_code)]
 
@@ -25,7 +25,7 @@ impl<const BYTES: usize> CompactInt<BYTES> {
     }
 
     #[inline(always)]
-    pub fn from_bytes(bytes: &[u8]) -> Self {
+    pub fn from_le_bytes(bytes: &[u8]) -> Self {
         let mut res = Self::new();
         unsafe {
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), res.0.as_mut_ptr(), BYTES);
@@ -34,8 +34,23 @@ impl<const BYTES: usize> CompactInt<BYTES> {
     }
 
     #[inline(always)]
-    pub fn bytes(&self) -> &[u8] {
-        &self.0
+    pub fn from_be_bytes(bytes: &[u8]) -> Self {
+        let mut le_bytes = [0u8; BYTES];
+        le_bytes.copy_from_slice(bytes);
+        le_bytes.reverse();
+        Self::from_le_bytes(&le_bytes)
+    }
+
+    #[inline(always)]
+    pub fn to_le_bytes(self) -> [u8; BYTES] {
+        self.0
+    }
+
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; BYTES] {
+        let mut bytes = self.0;
+        bytes.reverse();
+        bytes
     }
 
     #[inline(always)]
@@ -101,7 +116,7 @@ impl<'de, const BYTES: usize> Visitor<'de> for CompactIntVisitor<BYTES> {
     }
 
     fn visit_bytes<E: std::error::Error>(self, bytes: &[u8]) -> Result<Self::Value, E> {
-        Ok(CompactInt::from_bytes(bytes))
+        Ok(CompactInt::from_le_bytes(bytes))
     }
 }
 
