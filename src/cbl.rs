@@ -63,17 +63,17 @@ macro_rules! impl_cbl {
 
             #[inline]
             fn merge_necklace_pos(necklace: $T, pos: usize) -> $T {
-                necklace * Self::KMER_BITS as $T + pos as $T
-                // (necklace << Self::POS_BITS) | (pos as $T)
+                // necklace * Self::KMER_BITS as $T + pos as $T
+                (necklace << Self::POS_BITS) | (pos as $T)
             }
 
             #[inline]
             fn split_necklace_pos(word: $T) -> ($T, usize) {
                 (
-                    word / (Self::KMER_BITS as $T),
-                    (word % (Self::KMER_BITS as $T)) as usize,
-                    // word >> Self::POS_BITS,
-                    // (word & ((1 << Self::POS_BITS) - 1)) as usize,
+                    // word / (Self::KMER_BITS as $T),
+                    // (word % (Self::KMER_BITS as $T)) as usize,
+                    word >> Self::POS_BITS,
+                    (word & ((1 << Self::POS_BITS) - 1)) as usize,
                 )
             }
 
