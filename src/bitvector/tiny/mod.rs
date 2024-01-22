@@ -75,12 +75,12 @@ pub struct TinyBitvectorIterator<'a> {
 impl<'a> Iterator for TinyBitvectorIterator<'a> {
     type Item = u8;
     fn next(&mut self) -> Option<Self::Item> {
-        while self.block_index < 4 && self.block == 0 {
+        while self.block == 0 {
             self.block_index += 1;
+            if self.block_index >= 4 {
+                return None;
+            }
             self.block = self.blocks[self.block_index];
-        }
-        if self.block_index >= 4 {
-            return None;
         }
         let bit_index = self.block.trailing_zeros() as u8;
         self.block -= 1 << bit_index;

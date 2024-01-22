@@ -66,12 +66,12 @@ impl<'a> Iterator for BitvectorIterator<'a> {
     type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
         let num_blocks = self.bitvector.num_blocks();
-        while self.block_index < num_blocks && self.block == 0 {
+        while self.block == 0 {
             self.block_index += 1;
+            if self.block_index >= num_blocks {
+                return None;
+            }
             self.block = self.bitvector.get_block(self.block_index);
-        }
-        if self.block_index >= num_blocks {
-            return None;
         }
         let bit_index = self.block.trailing_zeros() as usize;
         self.block -= 1 << bit_index;
