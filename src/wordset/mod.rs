@@ -1,8 +1,8 @@
 mod set_ops;
 
 use crate::bitvector::*;
-use crate::compact_int::CompactInt;
 use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
+use crate::sliced_int::SlicedInt;
 use crate::trie_vec::*;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
@@ -61,11 +61,11 @@ where
     #[inline]
     pub fn split_prefix_suffix<T: PrimInt + Unsigned + AsPrimitive<usize>>(
         word: T,
-    ) -> (usize, CompactInt<{ SUFFIX_BITS.div_ceil(8) }>) {
+    ) -> (usize, SlicedInt<{ SUFFIX_BITS.div_ceil(8) }>) {
         let suffix_mask: T = (T::one() << Self::SUFFIX_BITS) - T::one();
         (
             (word >> Self::SUFFIX_BITS).as_(),
-            CompactInt::<{ SUFFIX_BITS.div_ceil(8) }>::from_int(word & suffix_mask),
+            SlicedInt::<{ SUFFIX_BITS.div_ceil(8) }>::from_int(word & suffix_mask),
         )
     }
 
@@ -309,7 +309,7 @@ struct WordSetIterator<
     prefix_iter: BitvectorIterator<'a>,
     prefix: Option<usize>,
     suffix_iter: Option<TrieVecIterator<'a, { SUFFIX_BITS.div_ceil(8) }>>,
-    suffix: Option<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
+    suffix: Option<SlicedInt<{ SUFFIX_BITS.div_ceil(8) }>>,
 }
 
 impl<

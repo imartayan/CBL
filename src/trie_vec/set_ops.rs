@@ -165,7 +165,7 @@ impl<const BYTES: usize> BitXor<Self> for &mut TrieVec<BYTES> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compact_int::CompactInt;
+    use crate::sliced_int::SlicedInt;
     use itertools::Itertools;
 
     const N: usize = 1000;
@@ -179,27 +179,27 @@ mod tests {
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
         for &i in v0.iter() {
-            container.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
         }
         for &i in v1.iter() {
-            container2.insert(CompactInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         container = &mut container | &mut container2;
         for &i in v0.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }
         for &i in v1.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }
         for &i in v2.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
@@ -213,31 +213,31 @@ mod tests {
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
         for &i in v0.iter() {
-            container.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
         }
         for &i in v1.iter() {
-            container.insert(CompactInt::from_int(i));
-            container2.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         for &i in v2.iter() {
-            container2.insert(CompactInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         container = &mut container & &mut container2;
         for &i in v0.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
         for &i in v1.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }
         for &i in v2.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
@@ -251,31 +251,31 @@ mod tests {
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
         for &i in v0.iter() {
-            container.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
         }
         for &i in v1.iter() {
-            container.insert(CompactInt::from_int(i));
-            container2.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         for &i in v2.iter() {
-            container2.insert(CompactInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         container = &mut container - &mut container2;
         for &i in v0.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }
         for &i in v1.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
         for &i in v2.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
@@ -289,31 +289,31 @@ mod tests {
         let v1 = (0..(3 * N)).skip(1).step_by(3).collect_vec();
         let v2 = (0..(3 * N)).skip(2).step_by(3).collect_vec();
         for &i in v0.iter() {
-            container.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
         }
         for &i in v1.iter() {
-            container.insert(CompactInt::from_int(i));
-            container2.insert(CompactInt::from_int(i));
+            container.insert(SlicedInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         for &i in v2.iter() {
-            container2.insert(CompactInt::from_int(i));
+            container2.insert(SlicedInt::from_int(i));
         }
         container = &mut container ^ &mut container2;
         for &i in v0.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }
         for &i in v1.iter() {
             assert!(
-                !container.contains(&CompactInt::from_int(i)),
+                !container.contains(&SlicedInt::from_int(i)),
                 "false positive for {i}"
             );
         }
         for &i in v2.iter() {
             assert!(
-                container.contains(&CompactInt::from_int(i)),
+                container.contains(&SlicedInt::from_int(i)),
                 "false negative for {i}"
             );
         }

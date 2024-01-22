@@ -1,13 +1,13 @@
 mod set_ops;
 
-use crate::compact_int::CompactInt;
+use crate::sliced_int::SlicedInt;
 use crate::trie::{Trie, TrieIterator};
 use core::slice::Iter;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum TrieOrVec<const BYTES: usize> {
-    Vec(Vec<CompactInt<BYTES>>),
+    Vec(Vec<SlicedInt<BYTES>>),
     Trie(Trie, usize),
 }
 
@@ -21,7 +21,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    pub fn new_with_one(x: CompactInt<BYTES>) -> Self {
+    pub fn new_with_one(x: SlicedInt<BYTES>) -> Self {
         Self(TrieOrVec::Vec(vec![x]))
     }
 
@@ -42,14 +42,14 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    pub fn contains(&self, x: &CompactInt<BYTES>) -> bool {
+    pub fn contains(&self, x: &SlicedInt<BYTES>) -> bool {
         match &self.0 {
             TrieOrVec::Vec(vec) => vec.contains(x),
             TrieOrVec::Trie(trie, _) => trie.contains(&x.to_be_bytes()),
         }
     }
 
-    pub fn insert(&mut self, x: CompactInt<BYTES>) -> bool {
+    pub fn insert(&mut self, x: SlicedInt<BYTES>) -> bool {
         match &mut self.0 {
             TrieOrVec::Trie(trie, len) => {
                 let absent = trie.insert(&x.to_be_bytes());
@@ -68,7 +68,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
         }
     }
 
-    pub fn remove(&mut self, x: &CompactInt<BYTES>) -> bool {
+    pub fn remove(&mut self, x: &SlicedInt<BYTES>) -> bool {
         match &mut self.0 {
             TrieOrVec::Trie(trie, len) => {
                 let present = trie.remove(&x.to_be_bytes());
@@ -88,14 +88,14 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    pub fn insert_iter<I: ExactSizeIterator<Item = CompactInt<BYTES>>>(&mut self, it: I) {
+    pub fn insert_iter<I: ExactSizeIterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         for x in it {
             self.insert(x);
         }
     }
 
     #[inline]
-    pub fn remove_iter<I: ExactSizeIterator<Item = CompactInt<BYTES>>>(&mut self, it: I) {
+    pub fn remove_iter<I: ExactSizeIterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         for x in it {
             self.remove(&x);
         }
@@ -115,7 +115,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
         if let TrieOrVec::Trie(trie, _) = &self.0 {
             let vec = trie
                 .iter()
-                .map(|bytes: [u8; BYTES]| CompactInt::from_be_bytes(&bytes))
+                .map(|bytes: [u8; BYTES]| SlicedInt::from_be_bytes(&bytes))
                 .collect();
             self.0 = TrieOrVec::Vec(vec);
         }
@@ -124,7 +124,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     #[inline]
     pub fn iter<'a>(&'a self) -> TrieVecIterator<'a, BYTES>
     where
-        CompactInt<BYTES>: 'a,
+        SlicedInt<BYTES>: 'a,
     {
         match &self.0 {
             TrieOrVec::Vec(vec) => TrieVecIterator::Vec(vec.iter()),
@@ -140,16 +140,16 @@ impl<const BYTES: usize> Default for TrieVec<BYTES> {
 }
 
 pub enum TrieVecIterator<'a, const BYTES: usize> {
-    Vec(Iter<'a, CompactInt<BYTES>>),
+    Vec(Iter<'a, SlicedInt<BYTES>>),
     Trie(TrieIterator<'a, BYTES>),
 }
 
 impl<'a, const BYTES: usize> Iterator for TrieVecIterator<'a, BYTES> {
-    type Item = CompactInt<BYTES>;
+    type Item = SlicedInt<BYTES>;
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Vec(iter) => iter.next().copied(),
-            Self::Trie(iter) => iter.next().map(|bytes| CompactInt::from_be_bytes(&bytes)),
+            Self::Trie(iter) => iter.next().map(|bytes| SlicedInt::from_be_bytes(&bytes)),
         }
     }
 }

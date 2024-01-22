@@ -9,9 +9,9 @@ use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct CompactInt<const BYTES: usize>([u8; BYTES]);
+pub struct SlicedInt<const BYTES: usize>([u8; BYTES]);
 
-impl<const BYTES: usize> CompactInt<BYTES> {
+impl<const BYTES: usize> SlicedInt<BYTES> {
     #[inline(always)]
     pub fn new() -> Self {
         Self([0u8; BYTES])
@@ -74,15 +74,15 @@ impl<const BYTES: usize> CompactInt<BYTES> {
     }
 }
 
-impl<const BYTES: usize> Default for CompactInt<BYTES> {
+impl<const BYTES: usize> Default for SlicedInt<BYTES> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const BYTES: usize> Ord for CompactInt<BYTES> {
+impl<const BYTES: usize> Ord for SlicedInt<BYTES> {
     #[inline]
-    fn cmp(&self, other: &CompactInt<BYTES>) -> Ordering {
+    fn cmp(&self, other: &SlicedInt<BYTES>) -> Ordering {
         for i in (0..BYTES).rev() {
             match self.0[i].cmp(&other.0[i]) {
                 Ordering::Equal => (),
@@ -93,36 +93,36 @@ impl<const BYTES: usize> Ord for CompactInt<BYTES> {
     }
 }
 
-impl<const BYTES: usize> PartialOrd for CompactInt<BYTES> {
+impl<const BYTES: usize> PartialOrd for SlicedInt<BYTES> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<const BYTES: usize> Serialize for CompactInt<BYTES> {
+impl<const BYTES: usize> Serialize for SlicedInt<BYTES> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_bytes(&self.0)
     }
 }
 
-struct CompactIntVisitor<const BYTES: usize> {}
+struct SlicedIntVisitor<const BYTES: usize> {}
 
-impl<'de, const BYTES: usize> Visitor<'de> for CompactIntVisitor<BYTES> {
-    type Value = CompactInt<BYTES>;
+impl<'de, const BYTES: usize> Visitor<'de> for SlicedIntVisitor<BYTES> {
+    type Value = SlicedInt<BYTES>;
 
     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
         formatter.write_str("an integer sliced into bytes")
     }
 
     fn visit_bytes<E: std::error::Error>(self, bytes: &[u8]) -> Result<Self::Value, E> {
-        Ok(CompactInt::from_le_bytes(bytes))
+        Ok(SlicedInt::from_le_bytes(bytes))
     }
 }
 
-impl<'de, const BYTES: usize> Deserialize<'de> for CompactInt<BYTES> {
+impl<'de, const BYTES: usize> Deserialize<'de> for SlicedInt<BYTES> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_bytes(CompactIntVisitor {})
+        deserializer.deserialize_bytes(SlicedIntVisitor {})
     }
 }
 
@@ -134,13 +134,13 @@ mod tests {
 
     #[test]
     fn test_from_get() {
-        let x = CompactInt::<BYTES>::from_int(442u32);
+        let x = SlicedInt::<BYTES>::from_int(442u32);
         assert_eq!(x.get::<u32>(), 442, "{:?}", x.0);
     }
 
     #[test]
     fn test_set_get() {
-        let mut x = CompactInt::<BYTES>::new();
+        let mut x = SlicedInt::<BYTES>::new();
         x.set(631u32);
         assert_eq!(x.get::<u32>(), 631, "{:?}", x.0);
         x.set(363u32);
@@ -149,15 +149,15 @@ mod tests {
 
     #[test]
     fn test_eq() {
-        let x = CompactInt::<BYTES>::from_int(777u32);
-        let y = CompactInt::<BYTES>::from_int(777u32);
+        let x = SlicedInt::<BYTES>::from_int(777u32);
+        let y = SlicedInt::<BYTES>::from_int(777u32);
         assert_eq!(x, y, "{:?} ≠ {:?}", x.0, y.0);
     }
 
     #[test]
     fn test_ord() {
-        let x = CompactInt::<BYTES>::from_int(123u32);
-        let y = CompactInt::<BYTES>::from_int(777u32);
+        let x = SlicedInt::<BYTES>::from_int(123u32);
+        let y = SlicedInt::<BYTES>::from_int(777u32);
         assert!(x < y, "{:?} ≥ {:?}", x.0, y.0);
     }
 }
