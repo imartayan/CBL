@@ -4,6 +4,7 @@ use core::iter::FilterMap;
 use num_traits::cast::AsPrimitive;
 use num_traits::int::PrimInt;
 use num_traits::sign::Unsigned;
+use serde::{Deserialize, Serialize};
 
 pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     const BASE_MASK: Self;
@@ -129,7 +130,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct IntKmer<const K: usize, T: Base>(T);
 
