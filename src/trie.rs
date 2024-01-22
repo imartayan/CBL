@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::bitvector::{TinyBitvector, TinyBitvectorIterator};
 use serde::{Deserialize, Serialize};
 
