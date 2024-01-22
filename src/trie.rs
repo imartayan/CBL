@@ -72,24 +72,24 @@ impl TrieNode {
     pub fn contains(&self, bytes: &[u8]) -> bool {
         assert!(!bytes.is_empty(), "The requested slice is empty");
         let index = bytes[0];
-        let next = &bytes[1..];
+        let tail = &bytes[1..];
         if !self.bv.contains(index) {
             return false;
         }
         if self.children.is_none() {
-            return next.is_empty();
+            return tail.is_empty();
         }
         let rank = self.bv.rank(index);
         let vec = self.children.as_ref().unwrap();
-        vec[rank].contains(next)
+        vec[rank].contains(tail)
     }
 
     pub fn insert(&mut self, bytes: &[u8]) -> bool {
         assert!(!bytes.is_empty(), "The requested slice is empty");
         let index = bytes[0];
-        let next = &bytes[1..];
+        let tail = &bytes[1..];
         let absent = self.bv.insert(index);
-        if next.is_empty() {
+        if tail.is_empty() {
             return absent;
         }
         let rank = self.bv.rank(index);
@@ -97,23 +97,23 @@ impl TrieNode {
         if absent {
             vec.insert(rank, Trie::new());
         }
-        vec[rank].insert(next)
+        vec[rank].insert(tail)
     }
 
     pub fn remove(&mut self, bytes: &[u8]) -> bool {
         assert!(!bytes.is_empty(), "The requested slice is empty");
         let index = bytes[0];
-        let next = &bytes[1..];
+        let tail = &bytes[1..];
         if !self.bv.contains(index) {
             return false;
         }
         if self.children.is_none() {
             self.bv.remove(index);
-            return next.is_empty();
+            return tail.is_empty();
         }
         let rank = self.bv.rank(index);
         let vec = self.children.as_mut().unwrap();
-        let present = vec[rank].remove(next);
+        let present = vec[rank].remove(tail);
         if vec[rank].is_empty() {
             self.bv.remove(index);
             vec.remove(rank);
@@ -132,8 +132,8 @@ impl TrieNode {
             index_iter: self.bv.iter(),
             index: None,
             rank: None,
-            next_iter: None,
-            next: None,
+            tail_iter: None,
+            tail: None,
         }
     }
 }
@@ -144,32 +144,34 @@ pub struct TrieIterator<'a, const BYTES: usize> {
     index_iter: TinyBitvectorIterator<'a>,
     index: Option<u8>,
     rank: Option<usize>,
-    next_iter: Option<Box<TrieIterator<'a, BYTES>>>,
-    next: Option<[u8; BYTES]>,
+    tail_iter: Option<Box<TrieIterator<'a, BYTES>>>,
+    tail: Option<[u8; BYTES]>,
 }
 
 impl<'a, const BYTES: usize> Iterator for TrieIterator<'a, BYTES> {
     type Item = [u8; BYTES];
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(vec) = &self.trie.children {
-            while self.next.is_none() {
+            while self.tail.is_none() {
                 self.index = self.index_iter.next();
+                self.index?;
                 self.rank = self.rank.map_or(Some(0), |rank| Some(rank + 1));
                 let next_trie = &vec[self.rank.unwrap()];
-                let mut next_iter = Self {
+                let mut tail_iter = Self {
                     trie: &next_trie.0,
                     depth: self.depth + 1,
                     index_iter: next_trie.0.bv.iter(),
                     index: None,
                     rank: None,
-                    next_iter: None,
-                    next: None,
+                    tail_iter: None,
+                    tail: None,
                 };
-                self.next = next_iter.next();
-                self.next_iter = Some(Box::new(next_iter));
+                self.tail = tail_iter.next();
+                self.tail_iter = Some(Box::new(tail_iter));
             }
-            let mut bytes = self.next?;
+            let mut bytes = self.tail?;
             bytes[self.depth] = self.index?;
+            self.tail = self.tail_iter.as_mut().unwrap().next();
             Some(bytes)
         } else {
             self.index = self.index_iter.next();
@@ -200,5 +202,22 @@ mod tests {
         trie.remove(&[1, 2, 4]);
         trie.remove(&[7, 7, 7]);
         assert!(trie.is_empty());
+    }
+
+    #[test]
+    fn test_trie_iter() {
+        let mut trie = Trie::new();
+        trie.insert(&[9, 9, 9]);
+        trie.insert(&[1, 1, 1]);
+        trie.insert(&[1, 2, 4]);
+        trie.insert(&[1, 2, 3]);
+        trie.insert(&[7, 7, 7]);
+        let mut iter = trie.iter::<3>();
+        assert_eq!(iter.next(), Some([1, 1, 1]));
+        assert_eq!(iter.next(), Some([1, 2, 3]));
+        assert_eq!(iter.next(), Some([1, 2, 4]));
+        assert_eq!(iter.next(), Some([7, 7, 7]));
+        assert_eq!(iter.next(), Some([9, 9, 9]));
+        assert_eq!(iter.next(), None);
     }
 }
