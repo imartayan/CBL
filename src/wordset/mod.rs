@@ -196,11 +196,7 @@ where
             } else {
                 self.tiered.get(rank) as usize
             };
-            if group.len() == 1 {
-                self.suffix_containers[id].insert(group[0].1);
-            } else {
-                self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
-            }
+            self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
             self.adapt_container_grow(id);
         }
     }
@@ -215,11 +211,7 @@ where
             if self.prefixes.contains(prefix) {
                 let rank = self.prefixes.rank(prefix);
                 let id = self.tiered.get(rank) as usize;
-                if group.len() == 1 {
-                    self.suffix_containers[id].remove(&group[0].1);
-                } else {
-                    self.suffix_containers[id].remove_iter(group.iter().map(|&(_, suffix)| suffix));
-                }
+                self.suffix_containers[id].remove_iter(group.iter().map(|&(_, suffix)| suffix));
                 if self.suffix_containers[id].is_empty() {
                     self.empty_containers.push(id);
                     self.tiered.remove(rank);
