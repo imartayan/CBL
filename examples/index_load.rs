@@ -34,11 +34,11 @@ fn main() {
     let mut total_load = 0.0;
     for (size, load) in cbl.buckets_load_repartition().iter() {
         total_load += load * 100.0;
-        println!(
+        eprintln!(
             "{:.3}% of items are in a bucket of size ≤ {size}",
             total_load
         );
     }
     let (max_prefix, max_size) = cbl.buckets_sizes().max_by_key(|&(_, size)| size).unwrap();
-    println!("The biggest bucket (of size {max_size}) corresponds to prefix {max_prefix}");
+    eprintln!("The biggest bucket (of size {max_size}) corresponds to prefix {max_prefix}");
 }
