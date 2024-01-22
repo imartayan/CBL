@@ -36,11 +36,12 @@ macro_rules! impl_cbl {
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
             const KMER_BITS: usize = 2 * K;
+            const POS_BITS: usize = Self::KMER_BITS.next_power_of_two().ilog2() as usize;
             const CHUNK_SIZE: usize = 2048;
 
             pub fn new() -> Self {
                 assert!(
-                    2 * K + (2 * K).next_power_of_two().ilog2() as usize <= <$T>::BITS as usize,
+                    Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
                     "Cannot fit a {K}-mer and its length in a {}-bit integer",
                     <$T>::BITS
                 );
@@ -63,7 +64,7 @@ macro_rules! impl_cbl {
             #[inline]
             fn merge_necklace_pos(necklace: $T, pos: usize) -> $T {
                 necklace * Self::KMER_BITS as $T + pos as $T
-                // (necklace << P) | (pos as $T)
+                // (necklace << Self::POS_BITS) | (pos as $T)
             }
 
             #[inline]
@@ -71,6 +72,8 @@ macro_rules! impl_cbl {
                 (
                     word / (Self::KMER_BITS as $T),
                     (word % (Self::KMER_BITS as $T)) as usize,
+                    // word >> Self::POS_BITS,
+                    // (word & ((1 << Self::POS_BITS) - 1)) as usize,
                 )
             }
 
