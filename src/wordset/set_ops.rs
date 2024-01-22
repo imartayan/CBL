@@ -1,4 +1,4 @@
-use super::{Container, WordSet};
+use super::WordSet;
 use core::ops::*;
 
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitOrAssign<&mut Self>

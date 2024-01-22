@@ -2,9 +2,8 @@ mod set_ops;
 
 use crate::bitvector::*;
 use crate::compact_int::CompactInt;
-use crate::container::*;
 use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
-use core::slice::Iter;
+use crate::trie_vec::*;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
@@ -21,7 +20,7 @@ where
 {
     prefixes: Bitvector,
     tiered: UniquePtr<TieredVec28>,
-    suffix_containers: Vec<SemiSortedVec<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>>,
+    suffix_containers: Vec<TrieVec<{ SUFFIX_BITS.div_ceil(8) }>>,
     empty_containers: Vec<usize>,
 }
 
@@ -31,6 +30,7 @@ where
 {
     const PREFIX_BITS: usize = PREFIX_BITS;
     const SUFFIX_BITS: usize = SUFFIX_BITS;
+    const THRESHOLD: usize = 1024;
 
     pub fn new() -> Self {
         assert!(
@@ -92,16 +92,15 @@ where
                 }
                 None => {
                     let id = self.suffix_containers.len();
-                    self.suffix_containers.push(SemiSortedVec::<
-                        CompactInt<{ SUFFIX_BITS.div_ceil(8) }>,
-                        32,
-                    >::new_with_one(suffix));
+                    self.suffix_containers
+                        .push(TrieVec::<{ SUFFIX_BITS.div_ceil(8) }>::new_with_one(suffix));
                     self.tiered.insert(rank, id as u32);
                 }
             };
         } else {
             let id = self.tiered.get(rank) as usize;
             absent = self.suffix_containers[id].insert(suffix);
+            self.adapt_container_grow(id);
         }
         absent
     }
@@ -113,6 +112,7 @@ where
             let rank = self.prefixes.rank(prefix);
             let id = self.tiered.get(rank) as usize;
             present = self.suffix_containers[id].remove(&suffix);
+            self.adapt_container_shrink(id);
             if self.suffix_containers[id].is_empty() {
                 self.empty_containers.push(id);
                 self.tiered.remove(rank);
@@ -188,9 +188,7 @@ where
                     None => {
                         let id = self.suffix_containers.len();
                         self.suffix_containers
-                            .push(
-                                SemiSortedVec::<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>, 32>::new(),
-                            );
+                            .push(TrieVec::<{ SUFFIX_BITS.div_ceil(8) }>::new());
                         self.tiered.insert(rank, id as u32);
                         id
                     }
@@ -203,6 +201,7 @@ where
             } else {
                 self.suffix_containers[id].insert_iter(group.iter().map(|&(_, suffix)| suffix));
             }
+            self.adapt_container_grow(id);
         }
     }
 
@@ -222,26 +221,24 @@ where
                     self.suffix_containers[id].remove_iter(group.iter().map(|&(_, suffix)| suffix));
                 }
                 if self.suffix_containers[id].is_empty() {
-                    // self.suffix_containers[id] = SemiSortedVec::new();
                     self.empty_containers.push(id);
                     self.tiered.remove(rank);
                     self.prefixes.remove(prefix);
                 }
+                self.adapt_container_shrink(id);
             }
         }
     }
 
-    #[inline]
-    pub fn iter<T: PrimInt + Unsigned + AsPrimitive<usize>>(&self) -> impl Iterator<Item = T> + '_
-    where
-        usize: AsPrimitive<T>,
-    {
-        WordSetIterator {
-            wordset: self,
-            prefix_iter: self.prefixes.iter(),
-            prefix: None,
-            suffix_iter: [].iter(),
-            suffix: None,
+    fn adapt_container_grow(&mut self, id: usize) {
+        if self.suffix_containers[id].len() > Self::THRESHOLD {
+            self.suffix_containers[id].as_trie();
+        }
+    }
+
+    fn adapt_container_shrink(&mut self, id: usize) {
+        if self.suffix_containers[id].len() <= Self::THRESHOLD {
+            self.suffix_containers[id].as_vec();
         }
     }
 
@@ -273,6 +270,20 @@ where
             .map(|(&size, &count)| (size, count as f64 / total_size as f64))
             .collect()
     }
+
+    #[inline]
+    pub fn iter<T: PrimInt + Unsigned + AsPrimitive<usize>>(&self) -> impl Iterator<Item = T> + '_
+    where
+        usize: AsPrimitive<T>,
+    {
+        WordSetIterator {
+            wordset: self,
+            prefix_iter: self.prefixes.iter(),
+            prefix: None,
+            suffix_iter: None,
+            suffix: None,
+        }
+    }
 }
 
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Default
@@ -297,8 +308,8 @@ struct WordSetIterator<
     wordset: &'a WordSet<PREFIX_BITS, SUFFIX_BITS>,
     prefix_iter: BitvectorIterator<'a>,
     prefix: Option<usize>,
-    suffix_iter: Iter<'a, CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
-    suffix: Option<&'a CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
+    suffix_iter: Option<TrieVecIterator<'a, { SUFFIX_BITS.div_ceil(8) }>>,
+    suffix: Option<CompactInt<{ SUFFIX_BITS.div_ceil(8) }>>,
 }
 
 impl<
@@ -317,12 +328,12 @@ where
             self.prefix = self.prefix_iter.next();
             let rank = self.wordset.prefixes.rank(self.prefix?);
             let id = self.wordset.tiered.get(rank) as usize;
-            self.suffix_iter = self.wordset.suffix_containers[id].iter();
-            self.suffix = self.suffix_iter.next();
+            self.suffix_iter = Some(self.wordset.suffix_containers[id].iter());
+            self.suffix = self.suffix_iter.as_mut().unwrap().next();
         }
         let prefix: T = self.prefix?.as_();
         let suffix: T = self.suffix?.get();
-        self.suffix = self.suffix_iter.next();
+        self.suffix = self.suffix_iter.as_mut().unwrap().next();
         Some((prefix << SUFFIX_BITS) | suffix)
     }
 }
