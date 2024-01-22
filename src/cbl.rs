@@ -39,6 +39,11 @@ macro_rules! impl_cbl {
             const CHUNK_SIZE: usize = 2048;
 
             pub fn new() -> Self {
+                assert!(
+                    2 * K + (2 * K).next_power_of_two().ilog2() as usize <= <$T>::BITS as usize,
+                    "Cannot fit a {K}-mer and its length in a {}-bit integer",
+                    <$T>::BITS
+                );
                 Self {
                     wordset: WordSet::new(),
                     necklace_queue:
