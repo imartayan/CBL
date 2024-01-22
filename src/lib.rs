@@ -5,7 +5,6 @@
 pub(crate) mod bitvector;
 pub(crate) mod cbl;
 pub(crate) mod compact_int;
-pub(crate) mod container;
 pub(crate) mod ffi;
 pub mod kmer;
 pub(crate) mod necklace;
