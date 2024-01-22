@@ -1,3 +1,6 @@
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
+
 use bincode::deserialize_from;
 use cbl::CBL;
 use clap::Parser;
