@@ -1,3 +1,5 @@
+mod set_ops;
+
 use crate::compact_int::CompactInt;
 use crate::trie::{Trie, TrieIterator};
 use core::slice::Iter;
