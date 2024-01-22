@@ -3,7 +3,7 @@ mod set_ops;
 use crate::bitvector::*;
 use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
 use crate::sliced_int::SlicedInt;
-use crate::trie_vec::*;
+use crate::trievec::*;
 use num_traits::cast::AsPrimitive;
 use num_traits::sign::Unsigned;
 use num_traits::PrimInt;

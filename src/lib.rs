@@ -9,7 +9,7 @@ pub mod kmer;
 pub(crate) mod necklace;
 pub(crate) mod sliced_int;
 pub(crate) mod trie;
-pub(crate) mod trie_vec;
+pub(crate) mod trievec;
 pub(crate) mod wordset;
 
 pub use cbl::CBL;
