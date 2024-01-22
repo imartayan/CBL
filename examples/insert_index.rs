@@ -38,19 +38,22 @@ fn main() {
         index_filename.to_owned()
     };
 
-    let index = File::open(index_filename).expect("Failed to open {index_filename}");
+    let index =
+        File::open(index_filename).unwrap_or_else(|_| panic!("Failed to open {index_filename}"));
     let reader = BufReader::new(index);
     eprintln!("Reading the index stored in {index_filename}");
     let mut cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
 
-    let mut reader = parse_fastx_file(input_filename).expect("Failed to open {input_filename}");
+    let mut reader = parse_fastx_file(input_filename)
+        .unwrap_or_else(|_| panic!("Failed to open {input_filename}"));
     eprintln!("Adding the {K}-mers contained in {input_filename} to the index");
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid record");
         cbl.insert_seq(&seqrec.seq());
     }
 
-    let output = File::create(output_filename.as_str()).expect("Failed to open {output_filename}");
+    let output = File::create(output_filename.as_str())
+        .unwrap_or_else(|_| panic!("Failed to open {output_filename}"));
     let mut writer = BufWriter::new(output);
     eprintln!("Writing the updated index to {output_filename}");
     serialize_into(&mut writer, &cbl).unwrap();

@@ -26,7 +26,8 @@ fn main() {
     let args = Args::parse();
     let index_filename = args.index.as_str();
 
-    let index = File::open(index_filename).expect("Failed to open {index_filename}");
+    let index =
+        File::open(index_filename).unwrap_or_else(|_| panic!("Failed to open {index_filename}"));
     let reader = BufReader::new(index);
     eprintln!("Reading the index stored in {index_filename}");
     let cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();

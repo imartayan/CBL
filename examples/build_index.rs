@@ -33,14 +33,16 @@ fn main() {
     };
 
     let mut cbl = CBL::<K, T, PREFIX_BITS>::new();
-    let mut reader = parse_fastx_file(input_filename).expect("Failed to open {input_filename}");
+    let mut reader = parse_fastx_file(input_filename)
+        .unwrap_or_else(|_| panic!("Failed to open {input_filename}"));
     eprintln!("Building the index of {K}-mers contained in {input_filename}");
     while let Some(record) = reader.next() {
-        let seqrec = record.expect("Invalid record");
+        let seqrec = record.unwrap_or_else(|_| panic!("Invalid record"));
         cbl.insert_seq(&seqrec.seq());
     }
 
-    let output = File::create(output_filename.as_str()).expect("Failed to open {output_filename}");
+    let output = File::create(output_filename.as_str())
+        .unwrap_or_else(|_| panic!("Failed to open {output_filename}"));
     let mut writer = BufWriter::new(output);
     eprintln!("Writing the index to {output_filename}");
     serialize_into(&mut writer, &cbl).unwrap();
