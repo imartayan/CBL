@@ -338,6 +338,7 @@ where
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(self.tiered.len()))?;
         for (rank, prefix) in self.prefixes.iter().enumerate() {
+            let prefix = prefix as u32;
             let id = self.tiered.get(rank) as usize;
             map.serialize_entry(&prefix, &self.suffix_containers[id])?;
         }
@@ -355,7 +356,7 @@ where
     type Value = WordSet<PREFIX_BITS, SUFFIX_BITS>;
 
     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-        formatter.write_str("an integer sliced into bytes")
+        formatter.write_str("a wordset")
     }
 
     fn visit_map<M: MapAccess<'de>>(self, mut access: M) -> Result<Self::Value, M::Error> {
@@ -365,13 +366,13 @@ where
             suffix_containers: Vec::with_capacity(access.size_hint().unwrap_or(0)),
             empty_containers: Vec::new(),
         };
-        while let Some((prefix, suffix_container)) = access.next_entry()? {
+        while let Some((prefix, suffix_container)) = access.next_entry::<u32, _>()? {
+            let prefix = prefix as usize;
             let rank = wordset.suffix_containers.len();
             wordset.prefixes.insert(prefix);
             wordset.tiered.insert(rank, rank as u32);
             wordset.suffix_containers.push(suffix_container);
         }
-
         Ok(wordset)
     }
 }
