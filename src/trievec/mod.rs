@@ -3,11 +3,7 @@ mod set_ops;
 use crate::sliced_int::SlicedInt;
 use crate::trie::{Trie, TrieIterator};
 use core::slice::Iter;
-use serde::{
-    de::{SeqAccess, Visitor},
-    ser::SerializeSeq,
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum TrieOrVec<const BYTES: usize> {
@@ -15,7 +11,7 @@ enum TrieOrVec<const BYTES: usize> {
     Trie(Trie<BYTES>, usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrieVec<const BYTES: usize>(TrieOrVec<BYTES>);
 
 impl<const BYTES: usize> TrieVec<BYTES> {
@@ -155,44 +151,5 @@ impl<'a, const BYTES: usize> Iterator for TrieVecIterator<'a, BYTES> {
             Self::Vec(iter) => iter.next().copied(),
             Self::Trie(iter) => iter.next().map(|bytes| SlicedInt::from_be_bytes(&bytes)),
         }
-    }
-}
-
-impl<const BYTES: usize> Serialize for TrieVec<BYTES> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut seq = serializer.serialize_seq(Some(self.len()))?;
-        for index in self.iter() {
-            seq.serialize_element(&index)?;
-        }
-        seq.end()
-    }
-}
-
-struct TrieVecVisitor<const BYTES: usize> {}
-
-impl<'de, const BYTES: usize> Visitor<'de> for TrieVecVisitor<BYTES> {
-    type Value = TrieVec<BYTES>;
-
-    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-        formatter.write_str("a trie or a vector")
-    }
-
-    fn visit_seq<S: SeqAccess<'de>>(self, mut access: S) -> Result<Self::Value, S::Error> {
-        let len = access.size_hint().unwrap();
-        let mut trievec = if len <= 1024 {
-            TrieVec(TrieOrVec::Vec(Vec::with_capacity(len)))
-        } else {
-            TrieVec(TrieOrVec::Trie(Trie::new(), 0))
-        };
-        while let Some(index) = access.next_element()? {
-            trievec.insert(index);
-        }
-        Ok(trievec)
-    }
-}
-
-impl<'de, const BYTES: usize> Deserialize<'de> for TrieVec<BYTES> {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_seq(TrieVecVisitor::<BYTES> {})
     }
 }
