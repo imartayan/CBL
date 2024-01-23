@@ -4,9 +4,9 @@ use crate::bitvector::{TinyBitvector, TinyBitvectorIterator};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Trie(Box<TrieNode>);
+pub struct Trie<const BYTES: usize>(Box<TrieNode<BYTES>>);
 
-impl Trie {
+impl<const BYTES: usize> Trie<BYTES> {
     #[inline(always)]
     pub fn new() -> Self {
         Self(Box::new(TrieNode::new()))
@@ -38,23 +38,23 @@ impl Trie {
     }
 
     #[inline(always)]
-    pub fn iter<const BYTES: usize>(&self) -> TrieIterator<BYTES> {
+    pub fn iter(&self) -> TrieIterator<BYTES> {
         self.0.iter()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct TrieNode {
+struct TrieNode<const BYTES: usize> {
     bv: TinyBitvector,
-    children: Option<Vec<Trie>>,
+    children: Vec<Trie<BYTES>>,
 }
 
-impl TrieNode {
+impl<const BYTES: usize> TrieNode<BYTES> {
     #[inline(always)]
     pub fn new() -> Self {
         Self {
             bv: TinyBitvector::new(),
-            children: None,
+            children: Vec::new(),
         }
     }
 
@@ -64,70 +64,75 @@ impl TrieNode {
     }
 
     pub fn count(&self) -> usize {
-        if let Some(vec) = &self.children {
-            vec.iter().map(|trie| trie.count()).sum()
-        } else {
+        if self.children.is_empty() {
             self.bv.count()
+        } else {
+            self.children.iter().map(|trie| trie.0.count()).sum()
         }
     }
 
     pub fn contains(&self, bytes: &[u8]) -> bool {
-        assert!(!bytes.is_empty(), "The requested slice is empty");
-        let index = bytes[0];
-        let tail = &bytes[1..];
-        if !self.bv.contains(index) {
-            return false;
+        assert_eq!(bytes.len(), BYTES, "The trie takes slices of {BYTES} bytes");
+        let mut trie = self;
+        for &index in &bytes[..BYTES - 1] {
+            if !trie.bv.contains(index) {
+                return false;
+            }
+            let rank = trie.bv.rank(index);
+            trie = &trie.children[rank].0;
         }
-        if self.children.is_none() {
-            return tail.is_empty();
-        }
-        let rank = self.bv.rank(index);
-        let vec = self.children.as_ref().unwrap();
-        vec[rank].contains(tail)
+        let index = bytes[BYTES - 1];
+        trie.bv.contains(index)
     }
 
     pub fn insert(&mut self, bytes: &[u8]) -> bool {
-        assert!(!bytes.is_empty(), "The requested slice is empty");
-        let index = bytes[0];
-        let tail = &bytes[1..];
-        let absent = self.bv.insert(index);
-        if tail.is_empty() {
-            return absent;
+        assert_eq!(bytes.len(), BYTES, "The trie takes slices of {BYTES} bytes");
+        let mut trie = self;
+        for &index in &bytes[..BYTES - 1] {
+            let absent = trie.bv.insert(index);
+            let rank = trie.bv.rank(index);
+            if absent {
+                trie.children.insert(rank, Trie::new());
+            }
+            trie = &mut trie.children[rank].0;
         }
-        let rank = self.bv.rank(index);
-        let vec = self.children.get_or_insert(Vec::new());
-        if absent {
-            vec.insert(rank, Trie::new());
-        }
-        vec[rank].insert(tail)
+        let index = bytes[BYTES - 1];
+        trie.bv.insert(index)
     }
 
     pub fn remove(&mut self, bytes: &[u8]) -> bool {
-        assert!(!bytes.is_empty(), "The requested slice is empty");
-        let index = bytes[0];
-        let tail = &bytes[1..];
-        if !self.bv.contains(index) {
-            return false;
+        assert_eq!(bytes.len(), BYTES, "The trie takes slices of {BYTES} bytes");
+        let mut trie = self;
+        let mut parents = Vec::new();
+        for &index in &bytes[..BYTES - 1] {
+            if !trie.bv.contains(index) {
+                return false;
+            }
+            let rank = trie.bv.rank(index);
+            parents.push(trie as *mut TrieNode<BYTES>);
+            trie = &mut trie.children[rank].0;
         }
-        if self.children.is_none() {
-            self.bv.remove(index);
-            return tail.is_empty();
+        let index = bytes[BYTES - 1];
+        trie.bv.remove(index);
+        if !trie.bv.is_empty() {
+            return true;
         }
-        let rank = self.bv.rank(index);
-        let vec = self.children.as_mut().unwrap();
-        let present = vec[rank].remove(tail);
-        if vec[rank].is_empty() {
-            self.bv.remove(index);
-            vec.remove(rank);
+        for &index in bytes[..BYTES - 1].iter().rev() {
+            unsafe {
+                trie = parents.pop().unwrap().as_mut().unwrap();
+            }
+            let rank = trie.bv.rank(index);
+            trie.children.remove(rank);
+            trie.bv.remove(index);
+            if !trie.bv.is_empty() {
+                return true;
+            }
         }
-        if self.bv.is_empty() {
-            self.children = None;
-        }
-        present
+        true
     }
 
     #[inline(always)]
-    pub fn iter<const BYTES: usize>(&self) -> TrieIterator<BYTES> {
+    pub fn iter(&self) -> TrieIterator<BYTES> {
         TrieIterator {
             trie: self,
             depth: 0,
@@ -141,7 +146,7 @@ impl TrieNode {
 }
 
 pub struct TrieIterator<'a, const BYTES: usize> {
-    trie: &'a TrieNode,
+    trie: &'a TrieNode<BYTES>,
     depth: usize,
     index_iter: TinyBitvectorIterator<'a>,
     index: Option<u8>,
@@ -153,16 +158,21 @@ pub struct TrieIterator<'a, const BYTES: usize> {
 impl<'a, const BYTES: usize> Iterator for TrieIterator<'a, BYTES> {
     type Item = [u8; BYTES];
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(vec) = &self.trie.children {
+        if self.trie.children.is_empty() {
+            self.index = self.index_iter.next();
+            let mut bytes = [0u8; BYTES];
+            bytes[self.depth] = self.index?;
+            Some(bytes)
+        } else {
             while self.tail.is_none() {
                 self.index = self.index_iter.next();
                 self.index?;
                 self.rank = self.rank.map_or(Some(0), |rank| Some(rank + 1));
-                let next_trie = &vec[self.rank.unwrap()];
+                let next_trie = &self.trie.children[self.rank.unwrap()].0;
                 let mut tail_iter = Self {
-                    trie: &next_trie.0,
+                    trie: next_trie,
                     depth: self.depth + 1,
-                    index_iter: next_trie.0.bv.iter(),
+                    index_iter: next_trie.bv.iter(),
                     index: None,
                     rank: None,
                     tail_iter: None,
@@ -175,11 +185,6 @@ impl<'a, const BYTES: usize> Iterator for TrieIterator<'a, BYTES> {
             bytes[self.depth] = self.index?;
             self.tail = self.tail_iter.as_mut().unwrap().next();
             Some(bytes)
-        } else {
-            self.index = self.index_iter.next();
-            let mut bytes = [0u8; BYTES];
-            bytes[self.depth] = self.index?;
-            Some(bytes)
         }
     }
 }
@@ -190,11 +195,12 @@ mod tests {
 
     #[test]
     fn test_trie() {
-        let mut trie = Trie::new();
+        let mut trie = Trie::<3>::new();
         trie.insert(&[1, 2, 3]);
         trie.insert(&[1, 2, 4]);
         trie.insert(&[7, 7, 7]);
         assert!(!trie.is_empty());
+        assert_eq!(trie.count(), 3);
         assert!(trie.contains(&[1, 2, 3]));
         assert!(trie.contains(&[1, 2, 4]));
         assert!(trie.contains(&[7, 7, 7]));
@@ -208,13 +214,13 @@ mod tests {
 
     #[test]
     fn test_trie_iter() {
-        let mut trie = Trie::new();
+        let mut trie = Trie::<3>::new();
         trie.insert(&[9, 9, 9]);
         trie.insert(&[1, 1, 1]);
         trie.insert(&[1, 2, 4]);
         trie.insert(&[1, 2, 3]);
         trie.insert(&[7, 7, 7]);
-        let mut iter = trie.iter::<3>();
+        let mut iter = trie.iter();
         assert_eq!(iter.next(), Some([1, 1, 1]));
         assert_eq!(iter.next(), Some([1, 2, 3]));
         assert_eq!(iter.next(), Some([1, 2, 4]));

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum TrieOrVec<const BYTES: usize> {
     Vec(Vec<SlicedInt<BYTES>>),
-    Trie(Trie, usize),
+    Trie(Trie<BYTES>, usize),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
