@@ -6,7 +6,7 @@ pub(crate) mod bitvector;
 pub(crate) mod cbl;
 pub(crate) mod ffi;
 pub mod kmer;
-pub(crate) mod necklace;
+pub mod necklace;
 pub(crate) mod sliced_int;
 pub(crate) mod trie;
 pub(crate) mod trievec;
