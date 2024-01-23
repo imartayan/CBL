@@ -203,6 +203,11 @@ macro_rules! impl_cbl {
             }
 
             #[inline]
+            pub fn buckets_size_count(&self) -> BTreeMap<usize, usize> {
+                self.wordset.buckets_size_count()
+            }
+
+            #[inline]
             pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
                 self.wordset.buckets_load_repartition()
             }

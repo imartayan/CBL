@@ -12,7 +12,7 @@ use serde::{
     ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-use std::collections::{btree_map::Entry::Vacant, BTreeMap};
+use std::collections::BTreeMap;
 
 pub struct WordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
 where
@@ -246,20 +246,20 @@ where
         })
     }
 
-    pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
-        let mut total_size = 0;
+    pub fn buckets_size_count(&self) -> BTreeMap<usize, usize> {
         let mut size_count = BTreeMap::new();
         for (_, size) in self.buckets_sizes() {
-            total_size += size;
-            if let Vacant(e) = size_count.entry(size) {
-                e.insert(size);
-            } else {
-                *size_count.get_mut(&size).unwrap() += size;
-            }
+            size_count.entry(size).and_modify(|e| *e += 1).or_insert(1);
         }
         size_count
+    }
+
+    pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
+        let size_count = self.buckets_size_count();
+        let total_size: usize = size_count.iter().map(|(&s, &c)| s * c).sum();
+        size_count
             .iter()
-            .map(|(&size, &count)| (size, count as f64 / total_size as f64))
+            .map(|(&s, &c)| (s, (s * c) as f64 / total_size as f64))
             .collect()
     }
 
