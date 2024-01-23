@@ -1,8 +1,12 @@
 #![allow(dead_code)]
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{SeqAccess, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TinyBitvector([u64; 4]);
 
 impl TinyBitvector {
@@ -87,5 +91,39 @@ impl<'a> Iterator for TinyBitvectorIterator<'a> {
         let bit_index = self.block.trailing_zeros() as u8;
         self.block -= 1 << bit_index;
         Some(self.block_index as u8 * 64 + bit_index)
+    }
+}
+
+impl Serialize for TinyBitvector {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut seq = serializer.serialize_seq(Some(self.count()))?;
+        for index in self.iter() {
+            seq.serialize_element(&index)?;
+        }
+        seq.end()
+    }
+}
+
+struct TinyBitvectorVisitor {}
+
+impl<'de> Visitor<'de> for TinyBitvectorVisitor {
+    type Value = TinyBitvector;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        formatter.write_str("a trie")
+    }
+
+    fn visit_seq<S: SeqAccess<'de>>(self, mut access: S) -> Result<Self::Value, S::Error> {
+        let mut bv = TinyBitvector::new();
+        while let Some(index) = access.next_element()? {
+            bv.insert(index);
+        }
+        Ok(bv)
+    }
+}
+
+impl<'de> Deserialize<'de> for TinyBitvector {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_seq(TinyBitvectorVisitor {})
     }
 }
