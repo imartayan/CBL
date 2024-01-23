@@ -32,13 +32,28 @@ fn main() {
     eprintln!("Reading the index stored in {index_filename}");
     let cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
 
-    let mut total_load = 0.0;
-    for (size, load) in cbl.buckets_load_repartition().iter() {
-        total_load += load * 100.0;
-        eprintln!(
-            "{:.3}% of items are in a bucket of size ≤ {size}",
-            total_load
-        );
+    eprintln!(
+        "{:.1}% of the available prefixes are used",
+        cbl.prefix_load() * 100.0
+    );
+    let buckets_size_count = cbl.buckets_size_count();
+    let total_buckets: usize = buckets_size_count.iter().map(|(_, &c)| c).sum();
+    let total_items: usize = buckets_size_count.iter().map(|(&s, &c)| s * c).sum();
+    let mut bucket_count = 0;
+    let mut item_count = 0;
+    for (&size, &count) in buckets_size_count.iter() {
+        bucket_count += count;
+        item_count += size * count;
+        if count > total_buckets / 1000
+            || size * count > total_items / 1000
+            || bucket_count == total_buckets
+        {
+            eprintln!(
+                "{:.2}% of items are in a bucket of size ≤ {size} ({:.2}% of buckets)",
+                (item_count * 100) as f64 / total_items as f64,
+                (bucket_count * 100) as f64 / total_buckets as f64,
+            );
+        }
     }
     let (max_prefix, max_size) = cbl.buckets_sizes().max_by_key(|&(_, size)| size).unwrap();
     eprintln!("The biggest bucket (of size {max_size}) corresponds to prefix {max_prefix}");
