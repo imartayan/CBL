@@ -110,7 +110,7 @@ impl<'de> Visitor<'de> for TinyBitvectorVisitor {
     type Value = TinyBitvector;
 
     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-        formatter.write_str("a trie")
+        formatter.write_str("a small bitvector")
     }
 
     fn visit_seq<S: SeqAccess<'de>>(self, mut access: S) -> Result<Self::Value, S::Error> {

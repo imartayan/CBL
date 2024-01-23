@@ -2,6 +2,11 @@ mod set_ops;
 mod tiny;
 
 use crate::ffi::{RankBV, UniquePtr, WithinUniquePtr};
+use serde::{
+    de::{SeqAccess, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 pub use tiny::*;
 
 pub struct Bitvector {
@@ -76,6 +81,45 @@ impl<'a> Iterator for BitvectorIterator<'a> {
         let bit_index = self.block.trailing_zeros() as usize;
         self.block -= 1 << bit_index;
         Some(self.block_index * 64 + bit_index)
+    }
+}
+
+impl Serialize for Bitvector {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let num_blocks = self.bv.num_blocks();
+        let mut seq = serializer.serialize_seq(Some(num_blocks))?;
+        for block_index in 0..num_blocks {
+            seq.serialize_element(&self.bv.get_block(block_index))?;
+        }
+        seq.end()
+    }
+}
+
+struct TinyBitvectorVisitor {}
+
+impl<'de> Visitor<'de> for TinyBitvectorVisitor {
+    type Value = Bitvector;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        formatter.write_str("a bitvector")
+    }
+
+    fn visit_seq<S: SeqAccess<'de>>(self, mut access: S) -> Result<Self::Value, S::Error> {
+        let num_blocks = access.size_hint().unwrap();
+        let bitlength = (num_blocks * 64).ilog2() as usize;
+        let bitvector = Bitvector::new_with_bitlength(bitlength);
+        let mut block_index = 0;
+        while let Some(block) = access.next_element()? {
+            bitvector.bv.update_block(block_index, block);
+            block_index += 1;
+        }
+        Ok(bitvector)
+    }
+}
+
+impl<'de> Deserialize<'de> for Bitvector {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_seq(TinyBitvectorVisitor {})
     }
 }
 
