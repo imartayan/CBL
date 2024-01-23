@@ -2,6 +2,7 @@
 
 use crate::bitvector::{TinyBitvector, TinyBitvectorIterator};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trie<const BYTES: usize>(Box<TrieNode<BYTES>>);
@@ -64,11 +65,20 @@ impl<const BYTES: usize> TrieNode<BYTES> {
     }
 
     pub fn count(&self) -> usize {
-        if self.children.is_empty() {
-            self.bv.count()
-        } else {
-            self.children.iter().map(|trie| trie.0.count()).sum()
+        let mut count = 0;
+        let mut queue = VecDeque::new();
+        queue.push_back(self);
+        while !queue.is_empty() {
+            let trie = queue.pop_front().unwrap();
+            if trie.children.is_empty() {
+                count += trie.bv.count();
+            } else {
+                for child in trie.children.iter() {
+                    queue.push_back(&child.0);
+                }
+            }
         }
+        count
     }
 
     pub fn contains(&self, bytes: &[u8]) -> bool {
