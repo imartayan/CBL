@@ -95,6 +95,27 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
+    fn insert_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+        match &mut self.0 {
+            TrieOrVec::Vec(vec) => {
+                let stop = vec.len();
+                let mut i = 0;
+                for x in it {
+                    while i < stop && x > vec[i] {
+                        i += 1;
+                    }
+                    if i == stop || x < vec[i] {
+                        vec.push(x);
+                    }
+                }
+            }
+            TrieOrVec::Trie(_trie, _len) => {
+                self.insert_iter(it);
+            }
+        }
+    }
+
+    #[inline]
     pub fn remove_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         for x in it {
             self.remove(&x);
