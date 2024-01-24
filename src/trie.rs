@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use crate::bitvector::{TinyBitvector, TinyBitvectorIterator};
+use core::mem::swap;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -145,56 +146,57 @@ impl<const BYTES: usize> TrieNode<BYTES> {
     pub fn iter(&self) -> TrieIterator<BYTES> {
         TrieIterator {
             trie: self,
-            depth: 0,
             index_iter: self.bv.iter(),
-            index: None,
             rank: None,
-            tail_iter: None,
-            tail: None,
+            parents: Vec::new(),
+            word: [0u8; BYTES],
         }
     }
 }
 
 pub struct TrieIterator<'a, const BYTES: usize> {
     trie: &'a TrieNode<BYTES>,
-    depth: usize,
     index_iter: TinyBitvectorIterator<'a>,
-    index: Option<u8>,
     rank: Option<usize>,
-    tail_iter: Option<Box<TrieIterator<'a, BYTES>>>,
-    tail: Option<[u8; BYTES]>,
+    parents: Vec<(
+        &'a TrieNode<BYTES>,
+        TinyBitvectorIterator<'a>,
+        Option<usize>,
+    )>,
+    word: [u8; BYTES],
 }
 
 impl<'a, const BYTES: usize> Iterator for TrieIterator<'a, BYTES> {
     type Item = [u8; BYTES];
     fn next(&mut self) -> Option<Self::Item> {
-        if self.trie.children.is_empty() {
-            self.index = self.index_iter.next();
-            let mut bytes = [0u8; BYTES];
-            bytes[self.depth] = self.index?;
-            Some(bytes)
-        } else {
-            while self.tail.is_none() {
-                self.index = self.index_iter.next();
-                self.index?;
-                self.rank = self.rank.map_or(Some(0), |rank| Some(rank + 1));
-                let next_trie = &self.trie.children[self.rank.unwrap()].0;
-                let mut tail_iter = Self {
-                    trie: next_trie,
-                    depth: self.depth + 1,
-                    index_iter: next_trie.bv.iter(),
-                    index: None,
-                    rank: None,
-                    tail_iter: None,
-                    tail: None,
-                };
-                self.tail = tail_iter.next();
-                self.tail_iter = Some(Box::new(tail_iter));
+        loop {
+            while !self.trie.children.is_empty() {
+                if let Some(index) = self.index_iter.next() {
+                    self.rank = self.rank.map_or(Some(0), |r| Some(r + 1));
+                    self.word[self.parents.len()] = index;
+                    let trie = self.trie.children[self.rank.unwrap()].0.as_ref();
+                    let mut iter = trie.bv.iter();
+                    swap(&mut self.index_iter, &mut iter);
+                    self.parents.push((self.trie, iter, self.rank));
+                    self.trie = trie;
+                    self.rank = None;
+                } else {
+                    let (trie, iter, rank) = self.parents.pop()?;
+                    self.trie = trie;
+                    self.index_iter = iter;
+                    self.rank = rank;
+                }
             }
-            let mut bytes = self.tail?;
-            bytes[self.depth] = self.index?;
-            self.tail = self.tail_iter.as_mut().unwrap().next();
-            Some(bytes)
+            if let Some(index) = self.index_iter.next() {
+                self.rank = self.rank.map_or(Some(0), |r| Some(r + 1));
+                self.word[self.parents.len()] = index;
+                return Some(self.word);
+            } else {
+                let (trie, iter, rank) = self.parents.pop()?;
+                self.trie = trie;
+                self.index_iter = iter;
+                self.rank = rank;
+            }
         }
     }
 }
