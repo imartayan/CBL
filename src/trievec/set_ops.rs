@@ -9,8 +9,12 @@ impl<const BYTES: usize> BitOr<Self> for &mut TrieVec<BYTES> {
     fn bitor(self, other: Self) -> Self::Output {
         let mut trie = Trie::new();
         let mut len = 0usize;
-        self.as_trie();
-        other.as_trie();
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+        if let TrieOrVec::Vec(vec) = &mut other.0 {
+            vec.sort_unstable();
+        }
         let mut self_iter = self.iter();
         let mut other_iter = other.iter();
         let mut x = self_iter.next();
@@ -55,8 +59,12 @@ impl<const BYTES: usize> BitAnd<Self> for &mut TrieVec<BYTES> {
     fn bitand(self, other: Self) -> Self::Output {
         let mut trie = Trie::new();
         let mut len = 0usize;
-        self.as_trie();
-        other.as_trie();
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+        if let TrieOrVec::Vec(vec) = &mut other.0 {
+            vec.sort_unstable();
+        }
         let mut self_iter = self.iter();
         let mut other_iter = other.iter();
         let mut x = self_iter.next();
@@ -87,8 +95,12 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
     fn sub(self, other: Self) -> Self::Output {
         let mut trie = Trie::new();
         let mut len = 0usize;
-        self.as_trie();
-        other.as_trie();
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+        if let TrieOrVec::Vec(vec) = &mut other.0 {
+            vec.sort_unstable();
+        }
         let mut self_iter = self.iter();
         let mut other_iter = other.iter();
         let mut x = self_iter.next();
@@ -124,8 +136,12 @@ impl<const BYTES: usize> BitXor<Self> for &mut TrieVec<BYTES> {
     fn bitxor(self, other: Self) -> Self::Output {
         let mut trie = Trie::new();
         let mut len = 0usize;
-        self.as_trie();
-        other.as_trie();
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+        if let TrieOrVec::Vec(vec) = &mut other.0 {
+            vec.sort_unstable();
+        }
         let mut self_iter = self.iter();
         let mut other_iter = other.iter();
         let mut x = self_iter.next();
