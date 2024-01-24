@@ -81,11 +81,11 @@ impl<const BYTES: usize> BitOrAssign<&mut Self> for TrieVec<BYTES> {
                 }
             }
         }
-        self.insert_iter(insertions.iter().copied());
         while let Some(b) = y {
-            self.insert(b);
+            insertions.push(b);
             y = other_iter.next();
         }
+        self.insert_sorted_iter(insertions.into_iter());
     }
 }
 
