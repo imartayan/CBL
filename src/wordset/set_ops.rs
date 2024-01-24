@@ -20,8 +20,7 @@ where
                 // merge containers
                 let id = self.tiered.get(rank) as usize;
                 let other_id = other.tiered.get(other_rank) as usize;
-                self.suffix_containers[id] =
-                    &mut self.suffix_containers[id] | &mut other.suffix_containers[other_id];
+                self.suffix_containers[id] |= &mut other.suffix_containers[other_id];
                 prefix = prefix_iter.next();
                 rank += 1;
             } else {
