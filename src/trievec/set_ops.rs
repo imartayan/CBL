@@ -53,6 +53,42 @@ impl<const BYTES: usize> BitOr<Self> for &mut TrieVec<BYTES> {
     }
 }
 
+impl<const BYTES: usize> BitOrAssign<&mut Self> for TrieVec<BYTES> {
+    fn bitor_assign(&mut self, other: &mut Self) {
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+        if let TrieOrVec::Vec(vec) = &mut other.0 {
+            vec.sort_unstable();
+        }
+        let mut self_iter = self.iter();
+        let mut other_iter = other.iter();
+        let mut x = self_iter.next();
+        let mut y = other_iter.next();
+        let mut insertions = Vec::new();
+        while let (Some(a), Some(b)) = (x, y) {
+            match a.cmp(&b) {
+                Ordering::Less => {
+                    x = self_iter.next();
+                }
+                Ordering::Greater => {
+                    insertions.push(b);
+                    y = other_iter.next();
+                }
+                Ordering::Equal => {
+                    x = self_iter.next();
+                    y = other_iter.next();
+                }
+            }
+        }
+        self.insert_iter(insertions.iter().copied());
+        while let Some(b) = y {
+            self.insert(b);
+            y = other_iter.next();
+        }
+    }
+}
+
 impl<const BYTES: usize> BitAnd<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
