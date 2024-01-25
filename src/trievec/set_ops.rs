@@ -123,8 +123,6 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
     fn sub(self, other: Self) -> Self::Output {
-        let mut trie = Trie::new();
-        let mut len = 0usize;
         if let TrieOrVec::Vec(vec) = &mut self.0 {
             vec.sort_unstable();
         }
@@ -135,11 +133,11 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
         let mut other_iter = other.iter();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
+        let mut insertions = Vec::new();
         while let (Some(a), Some(b)) = (x, y) {
             match a.cmp(&b) {
                 Ordering::Less => {
-                    trie.insert(&a.to_be_bytes());
-                    len = len.saturating_add(1);
+                    insertions.push(a);
                     x = self_iter.next();
                 }
                 Ordering::Greater => {
@@ -152,11 +150,10 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
             }
         }
         while let Some(a) = x {
-            trie.insert(&a.to_be_bytes());
-            len = len.saturating_add(1);
+            insertions.push(a);
             x = self_iter.next();
         }
-        TrieVec(TrieOrVec::Trie(trie, len))
+        TrieVec(TrieOrVec::Vec(insertions))
     }
 }
 
