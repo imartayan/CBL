@@ -59,8 +59,7 @@ where
                 // intersect containers
                 let id = self.tiered.get(rank) as usize;
                 let other_id = other.tiered.get(other_rank) as usize;
-                self.suffix_containers[id] =
-                    &mut self.suffix_containers[id] & &mut other.suffix_containers[other_id];
+                self.suffix_containers[id] &= &mut other.suffix_containers[other_id];
                 if self.suffix_containers[id].is_empty() {
                     self.empty_containers.push(id);
                     self.tiered.remove(rank);
