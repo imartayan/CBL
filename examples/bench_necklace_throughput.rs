@@ -16,11 +16,15 @@ const M: usize = 9;
 
 fn main() {
     let mut rng = thread_rng();
+    let mut bits = Vec::with_capacity(N);
+    for _ in 0..N {
+        bits.push(rng.gen());
+    }
     let mut queue = NecklaceQueue::<BITS, KT, { BITS - M + 1 }>::new();
     queue.insert_full(rng.gen());
     let start = Instant::now();
-    for _ in 0..N {
-        queue.insert(rng.gen_range(0..1));
+    for x in bits {
+        queue.insert(x);
         let (_necklace, _pos) = queue.get_necklace_pos();
     }
     let time = start.elapsed().as_nanos();
