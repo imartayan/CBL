@@ -122,6 +122,31 @@ impl<const BYTES: usize> TrieVec<BYTES> {
         }
     }
 
+    #[inline]
+    fn remove_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+        match &mut self.0 {
+            TrieOrVec::Vec(vec) => {
+                let stop = vec.len();
+                let mut i = 0;
+                let mut deletions = Vec::new();
+                for x in it {
+                    while i < stop && x > vec[i] {
+                        i += 1;
+                    }
+                    if i < stop && x == vec[i] {
+                        deletions.push(i);
+                    }
+                }
+                for &i in deletions.iter().rev() {
+                    vec.swap_remove(i);
+                }
+            }
+            TrieOrVec::Trie(_trie, _len) => {
+                self.remove_iter(it);
+            }
+        }
+    }
+
     pub fn as_trie(&mut self) {
         if let TrieOrVec::Vec(vec) = &self.0 {
             let mut trie = Trie::new();
