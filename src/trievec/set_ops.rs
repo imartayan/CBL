@@ -147,6 +147,10 @@ impl<const BYTES: usize> BitAndAssign<&mut Self> for TrieVec<BYTES> {
                 }
             }
         }
+        while let Some(a) = x {
+            deletions.push(a);
+            x = self_iter.next();
+        }
         self.remove_sorted_iter(deletions.into_iter());
     }
 }
