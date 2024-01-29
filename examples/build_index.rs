@@ -1,4 +1,4 @@
-use bincode::serialize_into;
+use bincode::{DefaultOptions, Options};
 use cbl::CBL;
 use clap::Parser;
 use needletail::parse_fastx_file;
@@ -45,5 +45,9 @@ fn main() {
         .unwrap_or_else(|_| panic!("Failed to open {output_filename}"));
     let mut writer = BufWriter::new(output);
     eprintln!("Writing the index to {output_filename}");
-    serialize_into(&mut writer, &cbl).unwrap();
+    DefaultOptions::new()
+        .with_varint_encoding()
+        .reject_trailing_bytes()
+        .serialize_into(&mut writer, &cbl)
+        .unwrap();
 }

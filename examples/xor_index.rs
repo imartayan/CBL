@@ -1,7 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use bincode::{deserialize_from, serialize_into};
+use bincode::{DefaultOptions, Options};
 use cbl::CBL;
 use clap::Parser;
 use std::fs::File;
@@ -41,13 +41,21 @@ fn main() {
         .unwrap_or_else(|_| panic!("Failed to open {first_index_filename}"));
     let reader = BufReader::new(first_index);
     eprintln!("Reading the first index stored in {first_index_filename}");
-    let mut cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
+    let mut cbl: CBL<K, T, PREFIX_BITS> = DefaultOptions::new()
+        .with_varint_encoding()
+        .reject_trailing_bytes()
+        .deserialize_from(reader)
+        .unwrap();
 
     let second_index = File::open(second_index_filename)
         .unwrap_or_else(|_| panic!("Failed to open {second_index_filename}"));
     let reader = BufReader::new(second_index);
     eprintln!("Reading the second index stored in {second_index_filename}");
-    let mut cbl2: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
+    let mut cbl2: CBL<K, T, PREFIX_BITS> = DefaultOptions::new()
+        .with_varint_encoding()
+        .reject_trailing_bytes()
+        .deserialize_from(reader)
+        .unwrap();
 
     cbl ^= &mut cbl2;
 
@@ -55,5 +63,9 @@ fn main() {
         .unwrap_or_else(|_| panic!("Failed to open {output_filename}"));
     let mut writer = BufWriter::new(output);
     eprintln!("Writing the updated first_index to {output_filename}");
-    serialize_into(&mut writer, &cbl).unwrap();
+    DefaultOptions::new()
+        .with_varint_encoding()
+        .reject_trailing_bytes()
+        .serialize_into(&mut writer, &cbl)
+        .unwrap();
 }

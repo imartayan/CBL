@@ -1,7 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use bincode::deserialize_from;
+use bincode::{DefaultOptions, Options};
 use cbl::CBL;
 use clap::Parser;
 use std::fs::File;
@@ -30,6 +30,10 @@ fn main() {
         File::open(index_filename).unwrap_or_else(|_| panic!("Failed to open {index_filename}"));
     let reader = BufReader::new(index);
     eprintln!("Reading the index stored in {index_filename}");
-    let cbl: CBL<K, T, PREFIX_BITS> = deserialize_from(reader).unwrap();
+    let cbl: CBL<K, T, PREFIX_BITS> = DefaultOptions::new()
+        .with_varint_encoding()
+        .reject_trailing_bytes()
+        .deserialize_from(reader)
+        .unwrap();
     eprintln!("It contains {} {K}-mers", cbl.count());
 }
