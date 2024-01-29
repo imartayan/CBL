@@ -10,8 +10,6 @@ The `CBL` data structure supports the following operations:
 - union / intersection / difference of two sets (with `|` / `&` / `-`)
 - (de)serialization with [serde](https://serde.rs/)
 
-You can see some examples of how to use it in the `examples` folder.
-
 ## Requirements
 
 ### Rust nightly
