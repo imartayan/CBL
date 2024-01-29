@@ -3,14 +3,14 @@
 A Rust library providing fully dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
 
 The `CBL` data structure supports the following operations:
-- inserting a single *k*-mer with `insert`, or every *k*-mer from a sequence with `insert_seq`
-- deleting a single *k*-mer with `remove`, or every *k*-mer from a sequence with `remove_seq`
-- membership of a single *k*-mer with `contains`, or every *k*-mer from a sequence with `contains_seq`
-- iterating over the *k*-mers stored in the set with `iter`
-- union of two sets with the `|` operator
-- intersection of two sets with the `&` operator
-- difference of two sets with the `-` operator
-- symmetric difference of two sets with the `^` operator
+- inserting a single *k*-mer (with `insert`), or every *k*-mer from a sequence (with `insert_seq`)
+- deleting a single *k*-mer (with `remove`), or every *k*-mer from a sequence (with `remove_seq`)
+- membership of a single *k*-mer (with `contains`), or every *k*-mer from a sequence (with `contains_seq`)
+- iterating over the *k*-mers stored in the set (with `iter`)
+- union of two sets (with `|`)
+- intersection of two sets (with `&`)
+- difference of two sets (with `-`)
+- symmetric difference of two sets (with `^`)
 - (de)serialization with [serde](https://serde.rs/)
 
 You can see some examples of how to use it in the `examples` folder.
@@ -73,27 +73,48 @@ If you did not use the `--recursive` flag, make sure to load the submodules with
 git submodule update --init --recursive
 ```
 
-### Running the examples
+### Running the binaries
 
-You can compile the examples with
+You can compile the binaries with
 ```sh
 cargo +nightly build --release --examples
 ```
 If the build fails, try to install [additional headers](#additional-headers-for-linux).
 
-By default, the examples are compiled with a fixed `K` equal to 25, you can compile them with a different `K` as follows
+By default, the binaries are compiled with a fixed `K` equal to 25, you can compile them with a different `K` as follows
 ```sh
 K=59 cargo +nightly build --release --examples
 ```
 Note that `K` values ≥ 60 are not supported by this library.
 
-Once compiled, the binaries will be located in `target/release/examples`.
-- `build_index <input>` creates an index containing the *k*-mers of a FASTA/Q file, and serializes it on disk.
-- `insert_index <index> <input>` adds the *k*-mers of a FASTA/Q file to a given index.
-- `remove_index <index> <input>` removes the *k*-mers of a FASTA/Q file to a given index.
-- `validate_index <index> <input>` checks that all the *k*-mers of a FASTA/Q file are contained in a given index.
+Similarly, `PREFIX_BITS` is equal to 24 by default and you can change it with
+```sh
+K=59 PREFIX_BITS=28 cargo +nightly build --release --examples
+```
+Note that `PREFIX_BITS` values ≥ 29 are not supported by this library.
 
-Use the `--help` flag to see all the options available.
+Once compiled, the main binary will be located at `target/release/examples/cbl`.
+It supports the following commands:
+```md
+Usage: cbl <COMMAND>
+
+Commands:
+  build        Build an index containing the k-mers of a FASTA/Q file
+  count        Count the k-mers contained in an index
+  query        Query an index for every k-mer contained in a FASTA/Q file
+  insert       Add the k-mers of a FASTA/Q file to an index
+  remove       Remove the k-mers of a FASTA/Q file from an index
+  merge        Compute the union of two indexes
+  inter        Compute the intersection of two indexes
+  diff         Compute the difference of two indexes
+  sym-diff     Compute the symmetric difference of two indexes
+  repartition  Show the repartition of the k-mers in the data structure
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
 
 ### Running the tests
 
