@@ -7,10 +7,7 @@ The `CBL` data structure supports the following operations:
 - deleting a single *k*-mer (with `remove`), or every *k*-mer from a sequence (with `remove_seq`)
 - membership of a single *k*-mer (with `contains`), or every *k*-mer from a sequence (with `contains_seq`)
 - iterating over the *k*-mers stored in the set (with `iter`)
-- union of two sets (with `|`)
-- intersection of two sets (with `&`)
-- difference of two sets (with `-`)
-- symmetric difference of two sets (with `^`)
+- union / intersection / difference of two sets (with `|` / `&` / `-`)
 - (de)serialization with [serde](https://serde.rs/)
 
 You can see some examples of how to use it in the `examples` folder.
