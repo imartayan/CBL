@@ -33,7 +33,7 @@ Depending on your configuration, some headers used for the bindings might be mis
 sudo apt install -y libstdc++-12-dev libclang-dev
 ```
 
-## Using the library with cargo
+## Using the library
 
 You can add `CBL` in an existing Rust project with
 ```sh
@@ -43,6 +43,7 @@ or by adding the following dependency in your `Cargo.toml`
 ```toml
 cbl = { git = https://github.com/imartayan/CBL.git }
 ```
+If the build fails, try to install [additional headers](#additional-headers-for-linux).
 
 ### Choosing the right parameters
 
@@ -55,6 +56,35 @@ In particular, since primitive integers cannot store more than 128 bits, this me
 
 Additionally, you can specify a third (optional) parameter `PREFIX_BITS` which determines the size of the underlying bitvector.
 Changing this parameter affects the space usage and the query time of the data structure, see the paper for more details.
+
+### Example usage
+
+```rs
+use cbl::CBL;
+use needletail::parse_fastx_file;
+use std::env::args;
+
+// define the parameters K and T
+const K: usize = 25;
+type T = u64; // T must be large enough to store $2k + \lg(2k)$ bits
+
+fn main() {
+    let args: Vec<String> = args().collect();
+    let input_filename = &args.get(1).expect("No argument given");
+
+    // create a CBL index with parameters K and T
+    let mut cbl = CBL::<K, T>::new();
+
+    let mut reader = parse_fastx_file(input_filename).unwrap();
+    // for each sequence of the FASTA/Q file
+    while let Some(record) = reader.next() {
+        let seqrec = record.expect("Invalid record");
+
+        // insert each k-mer of the sequence in the index
+        cbl.insert_seq(&seqrec.seq());
+    }
+}
+```
 
 ## Building from source
 
@@ -116,33 +146,4 @@ Options:
 You can run all the tests with
 ```sh
 cargo +nightly test --lib
-```
-
-## Example usage
-
-```rs
-use cbl::CBL;
-use needletail::parse_fastx_file;
-use std::env::args;
-
-// define the parameters K and T
-const K: usize = 25;
-type T = u64; // T must be large enough to store $2k + \lg(2k)$ bits
-
-fn main() {
-    let args: Vec<String> = args().collect();
-    let input_filename = &args.get(1).expect("No argument given");
-
-    // create a CBL index with parameters K and T
-    let mut cbl = CBL::<K, T>::new();
-
-    let mut reader = parse_fastx_file(input_filename).unwrap();
-    // for each sequence of the FASTA/Q file
-    while let Some(record) = reader.next() {
-        let seqrec = record.expect("Invalid record");
-
-        // insert each k-mer of the sequence in the index
-        cbl.insert_seq(&seqrec.seq());
-    }
-}
 ```
