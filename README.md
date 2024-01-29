@@ -1,4 +1,4 @@
-# CBL
+# Conway-Bromage-Lyndon
 
 A Rust library providing fully dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
 
