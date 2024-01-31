@@ -8,6 +8,12 @@ use std::collections::BTreeMap;
 
 const M: usize = 9;
 
+/// A fully dynamic set of *k*-mers.
+///
+/// # Type Parameters
+/// - `K`: the size of the *k*-mers, it must be ≤ 59.
+/// - `T`: the integer type used to store *k*-mers, it must be large enough to store $2k + \lg(2k)$ bits.
+/// - `PREFIX_BITS` (optional): the size of the prefixes in bits.
 #[derive(Serialize, Deserialize)]
 pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24>
 where
@@ -39,6 +45,7 @@ macro_rules! impl_cbl {
             const POS_BITS: usize = Self::KMER_BITS.next_power_of_two().ilog2() as usize;
             const CHUNK_SIZE: usize = 2048;
 
+            /// Creates an empty `CBL`.
             pub fn new() -> Self {
                 assert!(
                     Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
@@ -52,21 +59,25 @@ macro_rules! impl_cbl {
                 }
             }
 
+            /// Counts the number of *k*-mers in the set.
             pub fn count(&self) -> usize {
                 self.wordset.count()
             }
 
+            /// Returns `true` if there are no *k*-mers in the set.
             #[inline]
             pub fn is_empty(&self) -> bool {
                 self.wordset.is_empty()
             }
 
+            /// Packs a necklace and its position into a single integer.
             #[inline]
             fn merge_necklace_pos(necklace: $T, pos: usize) -> $T {
                 // necklace * Self::KMER_BITS as $T + pos as $T
                 (necklace << Self::POS_BITS) | (pos as $T)
             }
 
+            /// Unpacks a necklace and its position from a single integer.
             #[inline]
             fn split_necklace_pos(word: $T) -> ($T, usize) {
                 (
@@ -77,33 +88,41 @@ macro_rules! impl_cbl {
                 )
             }
 
+            /// Returns the necklace transformation of a *k*-mer.
             #[inline]
             fn get_word(kmer: IntKmer<K, $T>) -> $T {
                 let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(kmer.to_int());
                 Self::merge_necklace_pos(necklace, pos)
             }
 
+            /// Recovers a *k*-mer from its necklace transformation.
             #[inline]
             fn recover_kmer(word: $T) -> IntKmer<K, $T> {
                 let (necklace, pos) = Self::split_necklace_pos(word);
                 IntKmer::<K, $T>::from_int(revert_necklace_pos::<{ 2 * K }, $T>(necklace, pos))
             }
 
+            /// Returns `true` if the set contains the given *k*-mer, the *k*-mer must be packed into an [`IntKmer`].
             #[inline]
             pub fn contains(&self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.contains(Self::get_word(kmer))
             }
 
+            /// Adds a *k*-mer to the set, the *k*-mer must be packed into an [`IntKmer`].
+            /// Returns `true` the *k*-mer was absent from the set.
             #[inline]
             pub fn insert(&mut self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.insert(Self::get_word(kmer))
             }
 
+            /// Removes a *k*-mer to the set, the *k*-mer must be packed into an [`IntKmer`].
+            /// Returns `true` the *k*-mer was present in the set.
             #[inline]
             pub fn remove(&mut self, kmer: IntKmer<K, $T>) -> bool {
                 self.wordset.remove(Self::get_word(kmer))
             }
 
+            /// Splits a sequence into chunks of size `Self::CHUNK_SIZE` and returns an iterator over the chunks.
             #[inline]
             fn get_seq_chunks(seq: &'_ [u8]) -> impl Iterator<Item = &'_ [u8]> {
                 (0..(seq.len() - K + 1))
@@ -111,6 +130,7 @@ macro_rules! impl_cbl {
                     .map(|start| &seq[start..min(start + Self::CHUNK_SIZE + K - 1, seq.len())])
             }
 
+            /// Returns the necklace transformations of the *k*-mers contained in a sequence.
             #[inline]
             fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$T> {
                 let mut res = Vec::with_capacity(seq.len() - K + 1);
@@ -126,6 +146,7 @@ macro_rules! impl_cbl {
                 res
             }
 
+            /// Returns `true` if the set contains all the *k*-mers of a sequence.
             #[inline]
             pub fn contains_all(&mut self, seq: &[u8]) -> bool {
                 assert!(
@@ -143,6 +164,7 @@ macro_rules! impl_cbl {
                 true
             }
 
+            /// For each *k*-mer of a sequence, returns `true` if it is contained in the set.
             #[inline]
             pub fn contains_seq(&mut self, seq: &[u8]) -> Vec<bool> {
                 assert!(
@@ -159,6 +181,7 @@ macro_rules! impl_cbl {
                 res
             }
 
+            /// Adds all the *k*-mers of a sequence to the set.
             #[inline]
             pub fn insert_seq(&mut self, seq: &[u8]) {
                 assert!(
@@ -173,6 +196,7 @@ macro_rules! impl_cbl {
                 }
             }
 
+            /// Removes all the *k*-mers of a sequence from the set.
             #[inline]
             pub fn remove_seq(&mut self, seq: &[u8]) {
                 assert!(
@@ -187,26 +211,31 @@ macro_rules! impl_cbl {
                 }
             }
 
+            /// Returns an iterator over the *k*-mers of the set.
             #[inline]
             pub fn iter(&self) -> impl Iterator<Item = IntKmer<K, $T>> + '_ {
                 self.wordset.iter::<$T>().map(Self::recover_kmer)
             }
 
+            /// Returns the proportion of available prefixes used in the set.
             #[inline]
             pub fn prefix_load(&self) -> f64 {
                 self.wordset.prefix_load()
             }
 
+            /// Returns an iterator over the prefixes of the set, with the size of the associated buckets.
             #[inline]
             pub fn buckets_sizes(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
                 self.wordset.buckets_sizes()
             }
 
+            /// Returns a Map storing the number of buckets of each size.
             #[inline]
             pub fn buckets_size_count(&self) -> BTreeMap<usize, usize> {
                 self.wordset.buckets_size_count()
             }
 
+            /// Returns a Map storing the proportion of buckets of each size.
             #[inline]
             pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
                 self.wordset.buckets_load_repartition()
@@ -235,6 +264,7 @@ macro_rules! impl_cbl {
             [(); PREFIX_BITS.div_ceil(8)]:,
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
+            /// Perfom the union of `self` and `other` in place.
             fn bitor_assign(&mut self, other: &mut Self) {
                 self.wordset |= &mut other.wordset;
             }
@@ -249,6 +279,7 @@ macro_rules! impl_cbl {
             [(); PREFIX_BITS.div_ceil(8)]:,
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
+            /// Perform the intersection of `self` and `other` in place.
             fn bitand_assign(&mut self, other: &mut Self) {
                 self.wordset &= &mut other.wordset;
             }
@@ -263,6 +294,7 @@ macro_rules! impl_cbl {
             [(); PREFIX_BITS.div_ceil(8)]:,
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
+            /// Perform the difference of `self` and `other` in place.
             fn sub_assign(&mut self, other: &mut Self) {
                 self.wordset -= &mut other.wordset;
             }
@@ -277,6 +309,7 @@ macro_rules! impl_cbl {
             [(); PREFIX_BITS.div_ceil(8)]:,
             [(); (2 * K).saturating_sub(M - 1)]:,
         {
+            /// Perform the symmetric difference of `self` and `other` in place.
             fn bitxor_assign(&mut self, other: &mut Self) {
                 self.wordset ^= &mut other.wordset;
             }
