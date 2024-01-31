@@ -15,9 +15,9 @@ fn phi(n: usize) -> usize {
     (1..=n).filter(|&i| gcd(n, i) == 1).count()
 }
 
-/// Adapted from [Sawada's C implementation] and optimized for a binary alphabet.
+/// Adapted from [Joe Sawada's C implementation] and optimized for a binary alphabet.
 ///
-/// [Sawada's C implementation]: http://www.cis.uoguelph.ca/~sawada/prog/ranking_necklaces.c
+/// [Joe Sawada's C implementation]: http://www.cis.uoguelph.ca/~sawada/prog/ranking_necklaces.c
 pub struct NecklaceRanker<const N: usize, T> {
     divs: Vec<usize>,
     phis: Vec<T>,
