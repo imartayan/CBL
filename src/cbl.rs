@@ -11,7 +11,7 @@ const M: usize = 9;
 /// A fully dynamic set of *k*-mers.
 ///
 /// # Type Parameters
-/// - `K`: the size of the *k*-mers, it must be ≤ 59.
+/// - `K`: the length of the *k*-mers, it must be ≤ 59.
 /// - `T`: the integer type used to store *k*-mers, it must be large enough to store $2k + \lg(2k)$ bits.
 /// - `PREFIX_BITS` (optional): the size of the prefixes in bits.
 #[derive(Serialize, Deserialize)]
