@@ -19,9 +19,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install headers
-        run: sudo apt-get install libstdc++-12-dev libclang-dev
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        run: sudo apt update && apt install -y libstdc++-12-dev libclang-dev
+      - name: Setup Rust (nightly)
+        uses: dtolnay/rust-toolchain@nightly
       - name: Configure cache
         uses: Swatinem/rust-cache@v2
       - name: Setup pages
@@ -30,7 +30,7 @@ jobs:
       - name: Clean docs folder
         run: cargo clean --doc
       - name: Build docs
-        run: cargo doc --lib --no-deps
+        run: cargo +nightly doc --lib --no-deps
       - name: Add redirect
         run: echo '<meta http-equiv="refresh" content="0;url=cbl/index.html">' > target/doc/index.html
       - name: Remove lock file
