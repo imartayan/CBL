@@ -2,7 +2,9 @@
 
 A Rust library providing fully dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
 
-The `CBL` data structure supports the following operations:
+The data structure is described in [Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets](https://www.biorxiv.org/content/10.1101/2024.01.29.577700v1).
+
+It supports the following operations:
 - inserting a single *k*-mer (with `insert`), or every *k*-mer from a sequence (with `insert_seq`)
 - deleting a single *k*-mer (with `remove`), or every *k*-mer from a sequence (with `remove_seq`)
 - membership of a single *k*-mer (with `contains`), or every *k*-mer from a sequence (with `contains_seq`)
@@ -154,3 +156,7 @@ You can build the documentation of the library and open it in your browser with
 ```sh
 cargo +nightly doc --lib --no-deps --open
 ```
+
+## Citation
+
+Coming soon
