@@ -70,7 +70,7 @@ type T = u64; // T must be large enough to store $2k + \lg(2k)$ bits
 
 fn main() {
     let args: Vec<String> = args().collect();
-    let input_filename = &args.get(1).expect("No argument given");
+    let input_filename = args.get(1).expect("No argument given");
 
     // create a CBL index with parameters K and T
     let mut cbl = CBL::<K, T>::new();
