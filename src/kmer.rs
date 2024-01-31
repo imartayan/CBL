@@ -1,3 +1,5 @@
+//! A bit-packed representation of *k*-mers.
+
 use core::fmt::{Binary, Display};
 use core::hash::Hash;
 use core::iter::FilterMap;
