@@ -16,20 +16,20 @@ fn phi(n: usize) -> usize {
     (1..=n).filter(|&i| gcd(n, i) == 1).count()
 }
 
-pub struct Ranker<const N: usize, T> {
+pub struct NecklaceRanker<const N: usize, T> {
     divs: Vec<usize>,
     phis: Vec<T>,
 }
 
 macro_rules! impl_rank {
 ($($T:ty),+) => {$(
-impl<const N: usize> Default for Ranker<N, $T> {
+impl<const N: usize> Default for NecklaceRanker<N, $T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const N: usize> Ranker<N, $T> {
+impl<const N: usize> NecklaceRanker<N, $T> {
     pub fn new() -> Self {
         let mut divs = Vec::new();
         let mut phis = Vec::new();
@@ -176,7 +176,7 @@ mod tests {
     //     type T = u32;
     //     const K: usize = 9;
     //     const N: usize = 2 * K - 1;
-    //     let ranker = Ranker::<N, T>::new();
+    //     let ranker = NecklaceRanker::<N, T>::new();
     //     all_lmers::<K>().iter().enumerate().for_each(|(i, &x)| {
     //         println!("{}\t{:b}", ranker.rank(x), x);
     //         assert_eq!(ranker.rank(x), i as T);
