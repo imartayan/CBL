@@ -147,3 +147,10 @@ You can run all the tests with
 ```sh
 cargo +nightly test --lib
 ```
+
+### Building the documentation
+
+You can build the documentation of the library and open it in your browser with
+```sh
+cargo +nightly doc --lib --no-deps --open
+```
