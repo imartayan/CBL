@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-// Adapted from http://www.cis.uoguelph.ca/~sawada/prog/ranking_necklaces.c
-// and optimized for a binary alphabet
-
+/// Returns the greatest common divisor of two numbers.
 fn gcd(a: usize, b: usize) -> usize {
     let mut a = a;
     let mut b = b;
@@ -12,10 +10,14 @@ fn gcd(a: usize, b: usize) -> usize {
     a
 }
 
+/// Returns the number of integers <= n that are coprime with n.
 fn phi(n: usize) -> usize {
     (1..=n).filter(|&i| gcd(n, i) == 1).count()
 }
 
+/// Adapted from [Sawada's C implementation] and optimized for a binary alphabet.
+///
+/// [Sawada's C implementation]: http://www.cis.uoguelph.ca/~sawada/prog/ranking_necklaces.c
 pub struct NecklaceRanker<const N: usize, T> {
     divs: Vec<usize>,
     phis: Vec<T>,
@@ -30,6 +32,7 @@ impl<const N: usize> Default for NecklaceRanker<N, $T> {
 }
 
 impl<const N: usize> NecklaceRanker<N, $T> {
+    /// Creates a new `NecklaceRanker`.
     pub fn new() -> Self {
         let mut divs = Vec::new();
         let mut phis = Vec::new();
@@ -42,6 +45,7 @@ impl<const N: usize> NecklaceRanker<N, $T> {
         Self { divs, phis }
     }
 
+    /// Returns the value of the `i`-th bit of `w`.
     #[inline]
     fn get(w: $T, i: usize) -> $T {
         (w >> (N - i - 1)) & 1
@@ -61,7 +65,7 @@ impl<const N: usize> NecklaceRanker<N, $T> {
         (p, true)
     }
 
-    /// Compute largest necklace <= w[..n]
+    /// Computes the largest necklace <= w[..n].
     fn largest_necklace(w: $T, n: usize) -> $T {
         let mut res = w;
         let (mut p, mut done) = Self::lyn_necklace(res, n);
@@ -75,7 +79,7 @@ impl<const N: usize> NecklaceRanker<N, $T> {
         res
     }
 
-    /// Number of strings whose necklace is <= w
+    /// Returns the number of strings whose necklace is <= w.
     fn t(w: $T, n: usize) -> $T {
         let mut suf = [[0; N]; N];
         let mut b = [[0; N]; N];
@@ -146,7 +150,7 @@ impl<const N: usize> NecklaceRanker<N, $T> {
         tot
     }
 
-    /// Rank of w
+    /// Returns the rank of a necklace.
     pub fn rank(&self, w: $T) -> $T {
         let mut r = 0;
         for (&d, phi) in self.divs.iter().zip(self.phis.iter()) {
