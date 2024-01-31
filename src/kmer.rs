@@ -1,4 +1,4 @@
-//! A bit-packed representation of *k*-mers.
+//! Manipulate bit-packed representations of *k*-mers.
 
 use core::fmt::{Binary, Display};
 use core::hash::Hash;
