@@ -3,10 +3,11 @@
 
 pub(crate) mod minimizer;
 mod queue;
-pub mod rank;
+mod rank;
 
 use num_traits::int::PrimInt;
 pub use queue::NecklaceQueue;
+pub use rank::Ranker;
 
 /// Returns the necklace (smallest cyclic rotation) of a word and its position.
 pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
