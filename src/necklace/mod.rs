@@ -8,7 +8,7 @@ pub mod rank;
 use num_traits::int::PrimInt;
 pub use queue::NecklaceQueue;
 
-/// Return the necklace (smallest cyclic rotation) of a word and its position.
+/// Returns the necklace (smallest cyclic rotation) of a word and its position.
 pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
     let mut necklace = word;
     let mut rot = word;
@@ -23,7 +23,7 @@ pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
     (necklace, pos)
 }
 
-/// Recover a word from its necklace and position.
+/// Recovers a word from its necklace and position.
 #[inline]
 pub fn revert_necklace_pos<const BITS: usize, T: PrimInt>(necklace: T, pos: usize) -> T {
     ((necklace << (BITS - pos)) & ((T::one() << BITS) - T::one())) | (necklace >> pos)
