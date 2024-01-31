@@ -6,6 +6,7 @@ use num_traits::int::PrimInt;
 use num_traits::sign::Unsigned;
 use serde::{Deserialize, Serialize};
 
+/// A trait providing an integer representation of nucleotides.
 pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     const BASE_MASK: Self;
     fn from_nuc(b: &u8) -> Option<Self>;
@@ -13,42 +14,70 @@ pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     fn bases() -> [Self; 4];
 }
 
+/// A trait providing the reverse complement operation.
 pub trait RevComp {
     fn rev_comp(self) -> Self;
 }
 
+/// A trait providing common operations for bit-packed *k*-mers.
 pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
     const MASK: T;
+
+    /// Creates a new *k*-mer from an integer.
     fn from_int(s: T) -> Self;
+
+    /// Converts the *k*-mer to an integer.
     fn to_int(self) -> T;
+
+    /// Creates a new *k*-mer filled with zeroes.
     #[inline]
     fn new() -> Self {
         Self::from_int(T::zero())
     }
+
+    /// Adds a new base at the end of the *k*-mer.
+    /// Use [`append`] if you need to remove the first base.
+    ///
+    /// [`append`]: #method.append
     #[inline]
     fn extend(self, base: T) -> Self {
         Self::from_int((self.to_int() << 2) | base)
     }
+
+    /// Adds a new base at the end of the *k*-mer and removes the first base.
+    /// Use [`extend`] if you do not need to remove the first base.
+    ///
+    /// [`extend`]: #method.extend
     #[inline]
     fn append(self, base: T) -> Self {
         Self::from_int(((self.to_int() << 2) | base) & Self::MASK)
     }
+
+    /// Adds a new base at the beginning of the *k*-mer and removes the last base.
     #[inline]
     fn prepend(self, base: T) -> Self {
         Self::from_int((self.to_int() >> 2) | (base << (2 * (K - 1))))
     }
+
+    /// Returns the successors of the *k*-mer (by appending a new base).
     #[inline]
     fn successors(self) -> [Self; 4] {
         T::bases().map(|base| self.append(base))
     }
+
+    /// Returns the predecessors of the *k*-mer (by prepending a new base).
     #[inline]
     fn predecessors(self) -> [Self; 4] {
         T::bases().map(|base| self.prepend(base))
     }
+
+    /// Returns `true` if the *k*-mer is canonical.
     #[inline]
     fn is_canonical(self) -> bool {
         self.to_int().count_ones() % 2 == 0
     }
+
+    /// Returns the canonical version of the *k*-mer.
     #[inline]
     fn canonical(self) -> Self {
         if self.is_canonical() {
@@ -57,14 +86,20 @@ pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
             self.rev_comp()
         }
     }
+
+    /// Creates a new *k*-mer from an iterator over bases.
     #[inline]
     fn from_bases_iter<I: Iterator<Item = T>>(bases: I) -> Self {
         bases.take(K).fold(Self::new(), |s, base| s.extend(base))
     }
+
+    /// Creates a new *k*-mer from a slice of bases.
     #[inline]
     fn from_bases(bases: &[T]) -> Self {
         Self::from_bases_iter(bases.iter().copied())
     }
+
+    /// Returns the bases of the *k*-mer.
     fn to_bases(self) -> [T; K] {
         let mut res = [T::zero(); K];
         let mut s = self.to_int();
@@ -74,14 +109,20 @@ pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
         }
         res
     }
+
+    /// Creates a new *k*-mer from an iterator over nucleotides (in ASCII).
     #[inline]
     fn from_nucs(nucs: &[u8]) -> Self {
         Self::from_bases_iter(nucs.iter().filter_map(T::from_nuc))
     }
+
+    /// Returns the nucleotides (in ASCII) of the *k*-mer.
     #[inline]
     fn to_nucs(self) -> [u8; K] {
         self.to_bases().map(|base| base.to_nuc())
     }
+
+    /// Creates an iterator over *k*-mers from an iterator over bases.
     fn iter_from_bases<I: Iterator<Item = T>>(bases: I) -> KmerIterator<K, T, Self, I> {
         KmerIterator {
             kmer: Self::new(),
@@ -89,6 +130,8 @@ pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
             init: false,
         }
     }
+
+    /// Creates an iterator over *k*-mers from an iterator over nucleotides (in ASCII).
     #[inline]
     #[allow(clippy::type_complexity)]
     fn iter_from_nucs<'a, I: Iterator<Item = &'a u8>>(
@@ -98,6 +141,7 @@ pub trait Kmer<const K: usize, T: Base>: Sized + Copy + RevComp + Ord + Hash {
     }
 }
 
+/// An iterator over *k*-mers.
 pub struct KmerIterator<const K: usize, T, KT, I>
 where
     T: Base,
@@ -130,6 +174,11 @@ where
     }
 }
 
+/// A bit-packed representation of *k*-mers.
+///
+/// # Type parameters
+/// - `K`: the length of the *k*-mer.
+/// - `T`: the integer type used to store the *k*-mer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct IntKmer<const K: usize, T: Base>(T);
