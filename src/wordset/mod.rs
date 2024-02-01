@@ -130,7 +130,7 @@ where
             .iter()
             .map(|&word| Self::split_prefix_suffix(word))
             .collect();
-        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+        for group in prefixes_suffixes.chunk_by(|(p1, _), (p2, _)| p1 == p2) {
             let prefix = group[0].0;
             if !self.prefixes.contains(prefix) {
                 return false;
@@ -155,7 +155,7 @@ where
             .iter()
             .map(|&word| Self::split_prefix_suffix(word))
             .collect();
-        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+        for group in prefixes_suffixes.chunk_by(|(p1, _), (p2, _)| p1 == p2) {
             let prefix = group[0].0;
             if !self.prefixes.contains(prefix) {
                 res.resize(res.len() + group.len(), false);
@@ -175,7 +175,7 @@ where
             .iter()
             .map(|&word| Self::split_prefix_suffix(word))
             .collect();
-        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+        for group in prefixes_suffixes.chunk_by(|(p1, _), (p2, _)| p1 == p2) {
             let prefix = group[0].0;
             let absent = self.prefixes.insert(prefix);
             let rank = self.prefixes.rank(prefix);
@@ -206,7 +206,7 @@ where
             .iter()
             .map(|&word| Self::split_prefix_suffix(word))
             .collect();
-        for group in prefixes_suffixes.group_by(|(p1, _), (p2, _)| p1 == p2) {
+        for group in prefixes_suffixes.chunk_by(|(p1, _), (p2, _)| p1 == p2) {
             let prefix = group[0].0;
             if self.prefixes.contains(prefix) {
                 let rank = self.prefixes.rank(prefix);

@@ -1,5 +1,4 @@
 #![allow(incomplete_features)]
-#![feature(slice_group_by)]
 #![feature(generic_const_exprs)]
 
 pub(crate) mod bitvector;
