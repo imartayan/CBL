@@ -14,10 +14,10 @@ It supports the following operations:
 
 ## Requirements
 
-### Rust nightly
+### Rust nightly 1.77+
 
 If you have not installed Rust yet, please visit [rustup.rs](https://rustup.rs/) to install it.
-This library uses some nightly features of the Rust compiler, you can install the latest nightly version with
+This library uses some nightly features of the Rust compiler (version 1.77+), you can install the latest nightly version with
 ```sh
 rustup install nightly
 ```
