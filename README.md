@@ -30,9 +30,18 @@ rustup default nightly
 ### Additional headers for Linux
 
 This library uses C++ bindings for the [sux](https://github.com/vigna/sux) library and [tiered vectors](https://github.com/mettienne/tiered-vector).
-Depending on your configuration, some headers used for the bindings might be missing, in that case please install the following packages
+Depending on your configuration, some headers used for the bindings might be missing, in that case please install the following packages:
+
+#### Ubuntu
+
 ```sh
 sudo apt install -y libstdc++-12-dev libclang-dev
+```
+
+#### Fedora
+
+```sh
+sudo dnf install -y clang15-devel
 ```
 
 ## Using the library
