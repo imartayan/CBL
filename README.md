@@ -2,7 +2,7 @@
 
 A Rust library providing fully dynamic sets of *k*-mers with high [locality](https://en.wikipedia.org/wiki/Locality_of_reference).
 
-The data structure is described in [Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets](https://www.biorxiv.org/content/10.1101/2024.01.29.577700v1).
+The data structure is described in [Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets](https://www.biorxiv.org/content/10.1101/2024.01.29.577700v1), please [cite it](#citation) if you use it.
 
 It supports the following operations:
 - inserting a single *k*-mer (with `insert`), or every *k*-mer from a sequence (with `insert_seq`)
@@ -159,4 +159,13 @@ cargo +nightly doc --lib --no-deps --open
 
 ## Citation
 
-Coming soon
+```bibtex
+@article{martayan2024conway,
+  title={Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets},
+  author={Martayan, Igor and Cazaux, Bastien and Limasset, Antoine and Marchet, Camille},
+  journal={bioRxiv},
+  pages={2024--01},
+  year={2024},
+  publisher={Cold Spring Harbor Laboratory}
+}
+```
