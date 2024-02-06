@@ -168,7 +168,7 @@ cargo +nightly doc --lib --no-deps --open
 
 ## Citation
 
-[Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets](https://www.biorxiv.org/content/10.1101/2024.01.29.577700v1)
+> Martayan, I., Cazaux, B., Limasset, A., and Marchet, C. Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets. https://doi.org/10.1101/2024.01.29.577700
 
 ```bibtex
 @article{martayan2024conway,
