@@ -1,5 +1,52 @@
 use super::WordSet;
 use core::ops::*;
+use itertools::EitherOrBoth::{Both, Left, Right};
+use itertools::Itertools;
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitOr<Self>
+    for &mut WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    type Output = WordSet<PREFIX_BITS, SUFFIX_BITS>;
+
+    fn bitor(self, other: Self) -> Self::Output {
+        let mut res = Self::Output::new();
+        self.prefixes
+            .iter()
+            .enumerate()
+            .merge_join_by(other.prefixes.iter().enumerate(), |(_, a), (_, b)| a.cmp(b))
+            .for_each(|c| match c {
+                Left((rank_left, prefix)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let container = self.suffix_containers[id_left].clone();
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+                Right((rank_right, prefix)) => {
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = other.suffix_containers[id_right].clone();
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+                Both((rank_left, prefix), (rank_right, _)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = &mut self.suffix_containers[id_left]
+                        | &mut other.suffix_containers[id_right];
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+            });
+        res
+    }
+}
 
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitOrAssign<&mut Self>
     for WordSet<PREFIX_BITS, SUFFIX_BITS>
@@ -34,6 +81,39 @@ where
             }
         }
         self.prefixes |= &other.prefixes;
+    }
+}
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitAnd<Self>
+    for &mut WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    type Output = WordSet<PREFIX_BITS, SUFFIX_BITS>;
+
+    fn bitand(self, other: Self) -> Self::Output {
+        let mut res = Self::Output::new();
+        self.prefixes
+            .iter()
+            .enumerate()
+            .merge_join_by(other.prefixes.iter().enumerate(), |(_, a), (_, b)| a.cmp(b))
+            .for_each(|c| match c {
+                Left(_) => (),
+                Right(_) => (),
+                Both((rank_left, prefix), (rank_right, _)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = &mut self.suffix_containers[id_left]
+                        & &mut other.suffix_containers[id_right];
+                    if !container.is_empty() {
+                        let rank = res.suffix_containers.len();
+                        res.suffix_containers.push(container);
+                        res.tiered.insert(rank, rank as u32);
+                        res.prefixes.insert(prefix);
+                    }
+                }
+            });
+        res
     }
 }
 
@@ -77,6 +157,46 @@ where
     }
 }
 
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Sub<Self>
+    for &mut WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    type Output = WordSet<PREFIX_BITS, SUFFIX_BITS>;
+
+    fn sub(self, other: Self) -> Self::Output {
+        let mut res = Self::Output::new();
+        self.prefixes
+            .iter()
+            .enumerate()
+            .merge_join_by(other.prefixes.iter().enumerate(), |(_, a), (_, b)| a.cmp(b))
+            .for_each(|c| match c {
+                Left((rank_left, prefix)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let container = self.suffix_containers[id_left].clone();
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+                Right(_) => (),
+                Both((rank_left, prefix), (rank_right, _)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = &mut self.suffix_containers[id_left]
+                        - &mut other.suffix_containers[id_right];
+                    if !container.is_empty() {
+                        let rank = res.suffix_containers.len();
+                        res.suffix_containers.push(container);
+                        res.tiered.insert(rank, rank as u32);
+                        res.prefixes.insert(prefix);
+                    }
+                }
+            });
+        res
+    }
+}
+
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> SubAssign<&mut Self>
     for WordSet<PREFIX_BITS, SUFFIX_BITS>
 where
@@ -112,6 +232,53 @@ where
         for prefix in nonempty_prefixes {
             self.prefixes.insert(prefix);
         }
+    }
+}
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitXor<Self>
+    for &mut WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    type Output = WordSet<PREFIX_BITS, SUFFIX_BITS>;
+
+    fn bitxor(self, other: Self) -> Self::Output {
+        let mut res = Self::Output::new();
+        self.prefixes
+            .iter()
+            .enumerate()
+            .merge_join_by(other.prefixes.iter().enumerate(), |(_, a), (_, b)| a.cmp(b))
+            .for_each(|c| match c {
+                Left((rank_left, prefix)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let container = self.suffix_containers[id_left].clone();
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+                Right((rank_right, prefix)) => {
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = other.suffix_containers[id_right].clone();
+                    let rank = res.suffix_containers.len();
+                    res.suffix_containers.push(container);
+                    res.tiered.insert(rank, rank as u32);
+                    res.prefixes.insert(prefix);
+                }
+                Both((rank_left, prefix), (rank_right, _)) => {
+                    let id_left = self.tiered.get(rank_left) as usize;
+                    let id_right = other.tiered.get(rank_right) as usize;
+                    let container = &mut self.suffix_containers[id_left]
+                        ^ &mut other.suffix_containers[id_right];
+                    if !container.is_empty() {
+                        let rank = res.suffix_containers.len();
+                        res.suffix_containers.push(container);
+                        res.tiered.insert(rank, rank as u32);
+                        res.prefixes.insert(prefix);
+                    }
+                }
+            });
+        res
     }
 }
 
@@ -183,6 +350,16 @@ mod tests {
         for &i in v1.iter() {
             set2.insert(i);
         }
+        let res = &mut set | &mut set2;
+        for &i in v0.iter() {
+            assert!(res.contains(i), "false negative for {i}");
+        }
+        for &i in v1.iter() {
+            assert!(res.contains(i), "false negative for {i}");
+        }
+        for &i in v2.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
+        }
         set |= &mut set2;
         for &i in v0.iter() {
             assert!(set.contains(i), "false negative for {i}");
@@ -211,6 +388,16 @@ mod tests {
         }
         for &i in v2.iter() {
             set2.insert(i);
+        }
+        let res = &mut set & &mut set2;
+        for &i in v0.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
+        }
+        for &i in v1.iter() {
+            assert!(res.contains(i), "false negative for {i}");
+        }
+        for &i in v2.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
         }
         set &= &mut set2;
         for &i in v0.iter() {
@@ -241,6 +428,16 @@ mod tests {
         for &i in v2.iter() {
             set2.insert(i);
         }
+        let res = &mut set - &mut set2;
+        for &i in v0.iter() {
+            assert!(res.contains(i), "false negative for {i}");
+        }
+        for &i in v1.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
+        }
+        for &i in v2.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
+        }
         set -= &mut set2;
         for &i in v0.iter() {
             assert!(set.contains(i), "false negative for {i}");
@@ -269,6 +466,16 @@ mod tests {
         }
         for &i in v2.iter() {
             set2.insert(i);
+        }
+        let res = &mut set ^ &mut set2;
+        for &i in v0.iter() {
+            assert!(res.contains(i), "false negative for {i}");
+        }
+        for &i in v1.iter() {
+            assert!(!res.contains(i), "false positive for {i}");
+        }
+        for &i in v2.iter() {
+            assert!(res.contains(i), "false negative for {i}");
         }
         set ^= &mut set2;
         for &i in v0.iter() {

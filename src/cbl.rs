@@ -1,3 +1,5 @@
+#![allow(clippy::suspicious_arithmetic_impl)]
+
 use crate::kmer::{Base, IntKmer, Kmer};
 use crate::necklace::*;
 use crate::wordset::*;
@@ -255,6 +257,26 @@ macro_rules! impl_cbl {
             }
         }
 
+        impl<const K: usize, const PREFIX_BITS: usize> BitOr<Self> for &mut CBL<K, $T, PREFIX_BITS>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            type Output = CBL<K, $T, PREFIX_BITS>;
+
+            /// Perfom the union of two sets.
+            fn bitor(self, other: Self) -> Self::Output {
+                Self::Output {
+                    wordset: &mut self.wordset | &mut other.wordset,
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                }
+            }
+        }
+
         impl<const K: usize, const PREFIX_BITS: usize> BitOrAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
@@ -267,6 +289,26 @@ macro_rules! impl_cbl {
             /// Perfom the union of `self` and `other` in place.
             fn bitor_assign(&mut self, other: &mut Self) {
                 self.wordset |= &mut other.wordset;
+            }
+        }
+
+        impl<const K: usize, const PREFIX_BITS: usize> BitAnd<Self> for &mut CBL<K, $T, PREFIX_BITS>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            type Output = CBL<K, $T, PREFIX_BITS>;
+
+            /// Perfom the intersection of two sets.
+            fn bitand(self, other: Self) -> Self::Output {
+                Self::Output {
+                    wordset: &mut self.wordset & &mut other.wordset,
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                }
             }
         }
 
@@ -285,6 +327,26 @@ macro_rules! impl_cbl {
             }
         }
 
+        impl<const K: usize, const PREFIX_BITS: usize> Sub<Self> for &mut CBL<K, $T, PREFIX_BITS>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            type Output = CBL<K, $T, PREFIX_BITS>;
+
+            /// Perfom the difference of two sets.
+            fn sub(self, other: Self) -> Self::Output {
+                Self::Output {
+                    wordset: &mut self.wordset - &mut other.wordset,
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                }
+            }
+        }
+
         impl<const K: usize, const PREFIX_BITS: usize> SubAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
@@ -297,6 +359,26 @@ macro_rules! impl_cbl {
             /// Perform the difference of `self` and `other` in place.
             fn sub_assign(&mut self, other: &mut Self) {
                 self.wordset -= &mut other.wordset;
+            }
+        }
+
+        impl<const K: usize, const PREFIX_BITS: usize> BitXor<Self> for &mut CBL<K, $T, PREFIX_BITS>
+        where
+            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
+                .saturating_sub(PREFIX_BITS)
+                .div_ceil(8)]:,
+            [(); PREFIX_BITS.div_ceil(8)]:,
+            [(); (2 * K).saturating_sub(M - 1)]:,
+        {
+            type Output = CBL<K, $T, PREFIX_BITS>;
+
+            /// Perfom the intersection of two sets.
+            fn bitxor(self, other: Self) -> Self::Output {
+                Self::Output {
+                    wordset: &mut self.wordset ^ &mut other.wordset,
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                }
             }
         }
 
@@ -410,6 +492,9 @@ mod tests {
         let mut set2 = CBL::<K, T>::new();
         set.insert_seq(&nucs);
         set2.insert_seq(&nucs2);
+        let mut res = &mut set | &mut set2;
+        assert!(res.contains_seq(&nucs).iter().all(|&b| b));
+        assert!(res.contains_seq(&nucs2).iter().all(|&b| b));
         set |= &mut set2;
         assert!(set.contains_seq(&nucs).iter().all(|&b| b));
         assert!(set.contains_seq(&nucs2).iter().all(|&b| b));
@@ -428,6 +513,10 @@ mod tests {
         let mut set2 = CBL::<K, T>::new();
         set.insert_seq(&nucs);
         set2.insert_seq(&nucs2);
+        let res = &mut set & &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(res.contains(kmer), set2.contains(kmer));
+        }
         set &= &mut set2;
         for kmer in KmerT::iter_from_nucs(nucs.iter()) {
             assert_eq!(set.contains(kmer), set2.contains(kmer));
@@ -447,6 +536,10 @@ mod tests {
         let mut set2 = CBL::<K, T>::new();
         set.insert_seq(&nucs);
         set2.insert_seq(&nucs2);
+        let res = &mut set - &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(res.contains(kmer), !set2.contains(kmer));
+        }
         set -= &mut set2;
         for kmer in KmerT::iter_from_nucs(nucs.iter()) {
             assert_eq!(set.contains(kmer), !set2.contains(kmer));
@@ -466,6 +559,10 @@ mod tests {
         let mut set2 = CBL::<K, T>::new();
         set.insert_seq(&nucs);
         set2.insert_seq(&nucs2);
+        let res = &mut set ^ &mut set2;
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            assert_eq!(res.contains(kmer), !set2.contains(kmer));
+        }
         set ^= &mut set2;
         for kmer in KmerT::iter_from_nucs(nucs.iter()) {
             assert_eq!(set.contains(kmer), !set2.contains(kmer));
