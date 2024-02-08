@@ -53,7 +53,7 @@ enum Command {
 struct BuildArgs {
     /// Input file (FASTA/Q, possibly gzipped)
     input: String,
-    /// Output file (defaults to <input>.cbl)
+    /// Output file (no serialization by default)
     #[arg(short, long)]
     output: Option<String>,
 }
@@ -78,7 +78,7 @@ struct UpdateArgs {
     index: String,
     /// Input file to query (FASTA/Q, possibly gzipped)
     input: String,
-    /// Output file (otherwise overwrite the index file)
+    /// Output file (no serialization by default)
     #[arg(short, long)]
     output: Option<String>,
 }
@@ -89,7 +89,7 @@ struct SetOpsArgs {
     first_index: String,
     /// Index file (CBL format)
     second_index: String,
-    /// Output file (otherwise overwrite the first index)
+    /// Output file (no serialization by default)
     #[arg(short, long)]
     output: Option<String>,
 }
@@ -131,11 +131,6 @@ fn main() {
     match args.command {
         Command::Build(args) => {
             let input_filename = args.input.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                input_filename.to_owned() + ".cbl"
-            };
             let mut cbl = CBL::<K, T, PREFIX_BITS>::new();
             let mut reader = read_fasta(input_filename);
             eprintln!("Building the index of {K}-mers contained in {input_filename}");
@@ -143,7 +138,9 @@ fn main() {
                 let seqrec = record.unwrap_or_else(|_| panic!("Invalid record"));
                 cbl.insert_seq(&seqrec.seq());
             }
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Count(args) => {
             let index_filename = args.index.as_str();
@@ -177,11 +174,6 @@ fn main() {
         Command::Insert(args) => {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
             let mut reader = read_fasta(input_filename);
             eprintln!("Adding the {K}-mers contained in {input_filename} to the index");
@@ -189,16 +181,13 @@ fn main() {
                 let seqrec = record.expect("Invalid record");
                 cbl.insert_seq(&seqrec.seq());
             }
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Remove(args) => {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
             let mut reader = read_fasta(input_filename);
             eprintln!("Removing the {K}-mers contained in {input_filename} from the index");
@@ -206,59 +195,49 @@ fn main() {
                 let seqrec = record.expect("Invalid record");
                 cbl.remove_seq(&seqrec.seq());
             }
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Merge(args) => {
             let first_index_filename = args.first_index.as_str();
             let second_index_filename = args.second_index.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                first_index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(first_index_filename);
             let mut cbl2: CBL<K, T, PREFIX_BITS> = read_index(second_index_filename);
             cbl |= &mut cbl2;
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Inter(args) => {
             let first_index_filename = args.first_index.as_str();
             let second_index_filename = args.second_index.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                first_index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(first_index_filename);
             let mut cbl2: CBL<K, T, PREFIX_BITS> = read_index(second_index_filename);
             cbl &= &mut cbl2;
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Diff(args) => {
             let first_index_filename = args.first_index.as_str();
             let second_index_filename = args.second_index.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                first_index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(first_index_filename);
             let mut cbl2: CBL<K, T, PREFIX_BITS> = read_index(second_index_filename);
             cbl -= &mut cbl2;
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::SymDiff(args) => {
             let first_index_filename = args.first_index.as_str();
             let second_index_filename = args.second_index.as_str();
-            let output_filename = if let Some(filename) = args.output {
-                filename
-            } else {
-                first_index_filename.to_owned()
-            };
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(first_index_filename);
             let mut cbl2: CBL<K, T, PREFIX_BITS> = read_index(second_index_filename);
             cbl ^= &mut cbl2;
-            write_index(&cbl, output_filename.as_str());
+            if let Some(output_filename) = args.output {
+                write_index(&cbl, output_filename.as_str());
+            }
         }
         Command::Repartition(args) => {
             let index_filename = args.index.as_str();
