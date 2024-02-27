@@ -172,7 +172,7 @@ cargo +nightly doc --lib --no-deps --open
 
 ```bibtex
 @article{martayan2024conway,
-  title={Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets},
+  title={{Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets}},
   author={Martayan, Igor and Cazaux, Bastien and Limasset, Antoine and Marchet, Camille},
   journal={bioRxiv},
   pages={2024--01},
