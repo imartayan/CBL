@@ -1,6 +1,6 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
-use crate::kmer::{Base, IntKmer, Kmer};
+use crate::kmer::{Base, IntKmer, Kmer, RevComp};
 use crate::necklace::*;
 use crate::wordset::*;
 use core::cmp::min;
@@ -25,12 +25,15 @@ where
     [(); PREFIX_BITS.div_ceil(8)]:,
     [(); (2 * K).saturating_sub(M - 1)]:,
 {
+    canonical: bool,
     wordset: WordSet<
         PREFIX_BITS,
         { (2 * K + (2 * K).next_power_of_two().ilog2() as usize).saturating_sub(PREFIX_BITS) },
     >,
     #[serde(skip)]
     necklace_queue: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }>,
+    #[serde(skip)]
+    necklace_queue_rev: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }, true>,
 }
 
 macro_rules! impl_cbl {
@@ -47,7 +50,7 @@ macro_rules! impl_cbl {
             const POS_BITS: usize = Self::KMER_BITS.next_power_of_two().ilog2() as usize;
             const CHUNK_SIZE: usize = 2048;
 
-            /// Creates an empty `CBL`.
+            /// Creates an empty [`CBL`].
             pub fn new() -> Self {
                 assert!(
                     Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
@@ -55,10 +58,44 @@ macro_rules! impl_cbl {
                     <$T>::BITS
                 );
                 Self {
+                    canonical: false,
                     wordset: WordSet::new(),
                     necklace_queue:
                         NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
                 }
+            }
+
+            /// Creates an empty [`CBL`] for canonical *k*-mers.
+            pub fn new_canonical() -> Self {
+                assert!(
+                    Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
+                    "Cannot fit a {K}-mer and its length in a {}-bit integer",
+                    <$T>::BITS
+                );
+                Self {
+                    canonical: true,
+                    wordset: WordSet::new(),
+                    necklace_queue:
+                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
+                }
+            }
+
+            /// Returns `true` if the set stores canonical *k*-mers.
+            #[inline]
+            pub fn is_canonical(&self) -> bool {
+                self.canonical
             }
 
             /// Counts the number of *k*-mers in the set.
@@ -92,8 +129,12 @@ macro_rules! impl_cbl {
 
             /// Returns the necklace transformation of a *k*-mer.
             #[inline]
-            fn get_word(kmer: IntKmer<K, $T>) -> $T {
-                let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(kmer.to_int());
+            fn get_word(&self, kmer: IntKmer<K, $T>) -> $T {
+                let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(if self.canonical {
+                    kmer.canonical().to_int()
+                } else {
+                    kmer.to_int()
+                });
                 Self::merge_necklace_pos(necklace, pos)
             }
 
@@ -107,21 +148,21 @@ macro_rules! impl_cbl {
             /// Returns `true` if the set contains the given *k*-mer, the *k*-mer must be packed into an [`IntKmer`].
             #[inline]
             pub fn contains(&self, kmer: IntKmer<K, $T>) -> bool {
-                self.wordset.contains(Self::get_word(kmer))
+                self.wordset.contains(self.get_word(kmer))
             }
 
             /// Adds a *k*-mer to the set, the *k*-mer must be packed into an [`IntKmer`].
             /// Returns `true` the *k*-mer was absent from the set.
             #[inline]
             pub fn insert(&mut self, kmer: IntKmer<K, $T>) -> bool {
-                self.wordset.insert(Self::get_word(kmer))
+                self.wordset.insert(self.get_word(kmer))
             }
 
             /// Removes a *k*-mer to the set, the *k*-mer must be packed into an [`IntKmer`].
             /// Returns `true` the *k*-mer was present in the set.
             #[inline]
             pub fn remove(&mut self, kmer: IntKmer<K, $T>) -> bool {
-                self.wordset.remove(Self::get_word(kmer))
+                self.wordset.remove(self.get_word(kmer))
             }
 
             /// Splits a sequence into chunks of size `Self::CHUNK_SIZE` and returns an iterator over the chunks.
@@ -135,17 +176,47 @@ macro_rules! impl_cbl {
             /// Returns the necklace transformations of the *k*-mers contained in a sequence.
             #[inline]
             fn get_seq_words(&mut self, seq: &[u8]) -> Vec<$T> {
-                let mut res = Vec::with_capacity(seq.len() - K + 1);
-                let kmer = IntKmer::<K, $T>::from_nucs(&seq[..K]);
-                self.necklace_queue.insert_full(kmer.to_int());
-                let (necklace, pos) = self.necklace_queue.get_necklace_pos();
-                res.push(Self::merge_necklace_pos(necklace, pos));
-                for base in seq[K..].iter().filter_map(<$T>::from_nuc) {
-                    self.necklace_queue.insert2(base);
+                if self.canonical {
+                    let mut res = Vec::with_capacity(seq.len() - K + 1);
+                    let mut res_rc = Vec::with_capacity(seq.len() - K + 1);
+                    let mut kmer = IntKmer::<K, $T>::from_nucs(&seq[..K]);
+                    self.necklace_queue.insert_full(kmer.to_int());
+                    self.necklace_queue_rev
+                        .insert_full(kmer.rev_comp().to_int());
+                    if kmer.is_canonical() {
+                        let (necklace, pos) = self.necklace_queue.get_necklace_pos();
+                        res.push(Self::merge_necklace_pos(necklace, pos));
+                    } else {
+                        let (necklace, pos) = self.necklace_queue_rev.get_necklace_pos();
+                        res_rc.push(Self::merge_necklace_pos(necklace, pos));
+                    }
+                    for base in seq[K..].iter().filter_map(<$T>::from_nuc) {
+                        kmer = kmer.append(base);
+                        self.necklace_queue.insert2(base);
+                        self.necklace_queue_rev.insert2(base.complement());
+                        if kmer.is_canonical() {
+                            let (necklace, pos) = self.necklace_queue.get_necklace_pos();
+                            res.push(Self::merge_necklace_pos(necklace, pos));
+                        } else {
+                            let (necklace, pos) = self.necklace_queue_rev.get_necklace_pos();
+                            res_rc.push(Self::merge_necklace_pos(necklace, pos));
+                        }
+                    }
+                    res.append(&mut res_rc);
+                    res
+                } else {
+                    let mut res = Vec::with_capacity(seq.len() - K + 1);
+                    let kmer = IntKmer::<K, $T>::from_nucs(&seq[..K]);
+                    self.necklace_queue.insert_full(kmer.to_int());
                     let (necklace, pos) = self.necklace_queue.get_necklace_pos();
                     res.push(Self::merge_necklace_pos(necklace, pos));
+                    for base in seq[K..].iter().filter_map(<$T>::from_nuc) {
+                        self.necklace_queue.insert2(base);
+                        let (necklace, pos) = self.necklace_queue.get_necklace_pos();
+                        res.push(Self::merge_necklace_pos(necklace, pos));
+                    }
+                    res
                 }
-                res
             }
 
             /// Returns `true` if the set contains all the *k*-mers of a sequence.
@@ -269,10 +340,21 @@ macro_rules! impl_cbl {
 
             /// Perfom the union of two sets.
             fn bitor(self, other: Self) -> Self::Output {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 Self::Output {
+                    canonical: self.canonical,
                     wordset: &mut self.wordset | &mut other.wordset,
                     necklace_queue:
                         NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
                 }
             }
         }
@@ -288,6 +370,10 @@ macro_rules! impl_cbl {
         {
             /// Perfom the union of `self` and `other` in place.
             fn bitor_assign(&mut self, other: &mut Self) {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 self.wordset |= &mut other.wordset;
             }
         }
@@ -304,10 +390,21 @@ macro_rules! impl_cbl {
 
             /// Perfom the intersection of two sets.
             fn bitand(self, other: Self) -> Self::Output {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 Self::Output {
+                    canonical: self.canonical,
                     wordset: &mut self.wordset & &mut other.wordset,
                     necklace_queue:
                         NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
                 }
             }
         }
@@ -323,6 +420,10 @@ macro_rules! impl_cbl {
         {
             /// Perform the intersection of `self` and `other` in place.
             fn bitand_assign(&mut self, other: &mut Self) {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 self.wordset &= &mut other.wordset;
             }
         }
@@ -339,10 +440,21 @@ macro_rules! impl_cbl {
 
             /// Perfom the difference of two sets.
             fn sub(self, other: Self) -> Self::Output {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 Self::Output {
+                    canonical: self.canonical,
                     wordset: &mut self.wordset - &mut other.wordset,
                     necklace_queue:
                         NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
                 }
             }
         }
@@ -358,6 +470,10 @@ macro_rules! impl_cbl {
         {
             /// Perform the difference of `self` and `other` in place.
             fn sub_assign(&mut self, other: &mut Self) {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 self.wordset -= &mut other.wordset;
             }
         }
@@ -374,10 +490,21 @@ macro_rules! impl_cbl {
 
             /// Perfom the intersection of two sets.
             fn bitxor(self, other: Self) -> Self::Output {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 Self::Output {
+                    canonical: self.canonical,
                     wordset: &mut self.wordset ^ &mut other.wordset,
                     necklace_queue:
                         NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                    necklace_queue_rev: NecklaceQueue::<
+                        { 2 * K },
+                        $T,
+                        { (2 * K).saturating_sub(M - 1) },
+                        true,
+                    >::new(),
                 }
             }
         }
@@ -393,6 +520,10 @@ macro_rules! impl_cbl {
         {
             /// Perform the symmetric difference of `self` and `other` in place.
             fn bitxor_assign(&mut self, other: &mut Self) {
+                assert_eq!(
+                    self.canonical, other.canonical,
+                    "One of the index is canonical while the other isn't"
+                );
                 self.wordset ^= &mut other.wordset;
             }
         }
@@ -405,6 +536,8 @@ impl_cbl!(u128);
 
 #[cfg(test)]
 mod tests {
+    use crate::kmer::RevComp;
+
     use super::*;
     use itertools::Itertools;
     use rand::thread_rng;
@@ -460,6 +593,84 @@ mod tests {
         for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
             assert!(
                 !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+        }
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_canonical() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new_canonical();
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            set.insert(kmer);
+        }
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                set.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+            assert!(
+                set.contains(kmer.rev_comp()),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+        }
+        for kmer in KmerT::iter_from_nucs(nucs.iter()) {
+            set.remove(kmer);
+        }
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+            assert!(
+                !set.contains(kmer.rev_comp()),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+        }
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_canonical_batch() {
+        let mut rng = thread_rng();
+        let mut nucs = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut set = CBL::<K, T>::new_canonical();
+        set.insert_seq(&nucs);
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                set.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+            assert!(
+                set.contains(kmer.rev_comp()),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+        }
+        set.remove_seq(&nucs);
+        for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+            assert!(
+                !set.contains(kmer.rev_comp()),
                 "kmer {i} false positive: {:0b}",
                 kmer.to_int()
             );
