@@ -64,4 +64,18 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_same_necklace_queue() {
+        let mut rng = thread_rng();
+        for _ in 0..N {
+            let word: T = rng.gen::<T>() >> 1;
+            let necklace_queue = NecklaceQueue::<BITS, T, WIDTH>::new_from_word(word);
+            let necklace_queue_rev = NecklaceQueue::<BITS, T, WIDTH, true>::new_from_word(word);
+            assert_eq!(
+                necklace_queue.get_necklace_pos(),
+                necklace_queue_rev.get_necklace_pos(),
+            );
+        }
+    }
 }
