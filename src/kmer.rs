@@ -13,6 +13,7 @@ pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     const BASE_MASK: Self;
     fn from_nuc(b: &u8) -> Option<Self>;
     fn to_nuc(self) -> u8;
+    fn complement(self) -> Self;
     fn bases() -> [Self; 4];
 }
 
@@ -201,6 +202,10 @@ macro_rules! impl_t {
             const BASE_LOOKUP: [u8; 4] = [b'A', b'C', b'T', b'G'];
             debug_assert!(self < 4, "Invalid base");
             BASE_LOOKUP[self as usize]
+        }
+        #[inline]
+        fn complement(self) -> Self {
+            self ^ 0b10
         }
         #[inline(always)]
         fn bases() -> [Self; 4] {
