@@ -56,6 +56,9 @@ struct BuildArgs {
     /// Output file (no serialization by default)
     #[arg(short, long)]
     output: Option<String>,
+    /// Use canonical k-mers
+    #[arg(short, long)]
+    canonical: bool,
 }
 
 #[derive(Args, Debug)]
@@ -131,9 +134,17 @@ fn main() {
     match args.command {
         Command::Build(args) => {
             let input_filename = args.input.as_str();
-            let mut cbl = CBL::<K, T, PREFIX_BITS>::new();
+            let mut cbl = if args.canonical {
+                CBL::<K, T, PREFIX_BITS>::new_canonical()
+            } else {
+                CBL::<K, T, PREFIX_BITS>::new()
+            };
             let mut reader = read_fasta(input_filename);
-            eprintln!("Building the index of {K}-mers contained in {input_filename}");
+            if cbl.is_canonical() {
+                eprintln!("Building the index of canonical {K}-mers contained in {input_filename}");
+            } else {
+                eprintln!("Building the index of {K}-mers contained in {input_filename}");
+            }
             while let Some(record) = reader.next() {
                 let seqrec = record.unwrap_or_else(|_| panic!("Invalid record"));
                 cbl.insert_seq(&seqrec.seq());
@@ -145,14 +156,22 @@ fn main() {
         Command::Count(args) => {
             let index_filename = args.index.as_str();
             let cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            eprintln!("It contains {} {K}-mers", cbl.count());
+            if cbl.is_canonical() {
+                eprintln!("It contains {} canonical {K}-mers", cbl.count());
+            } else {
+                eprintln!("It contains {} {K}-mers", cbl.count());
+            }
         }
         Command::Query(args) => {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
             let mut reader = read_fasta(input_filename);
-            eprintln!("Querying the {K}-mers contained in {input_filename}");
+            if cbl.is_canonical() {
+                eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
+            } else {
+                eprintln!("Querying the {K}-mers contained in {input_filename}");
+            }
             let mut total = 0usize;
             let mut positive = 0usize;
             while let Some(record) = reader.next() {
@@ -176,7 +195,13 @@ fn main() {
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
             let mut reader = read_fasta(input_filename);
-            eprintln!("Adding the {K}-mers contained in {input_filename} to the index");
+            if cbl.is_canonical() {
+                eprintln!(
+                    "Adding the canonical {K}-mers contained in {input_filename} to the index"
+                );
+            } else {
+                eprintln!("Adding the {K}-mers contained in {input_filename} to the index");
+            }
             while let Some(record) = reader.next() {
                 let seqrec = record.expect("Invalid record");
                 cbl.insert_seq(&seqrec.seq());
@@ -190,7 +215,13 @@ fn main() {
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
             let mut reader = read_fasta(input_filename);
-            eprintln!("Removing the {K}-mers contained in {input_filename} from the index");
+            if cbl.is_canonical() {
+                eprintln!(
+                    "Removing the canonical {K}-mers contained in {input_filename} from the index"
+                );
+            } else {
+                eprintln!("Removing the {K}-mers contained in {input_filename} from the index");
+            }
             while let Some(record) = reader.next() {
                 let seqrec = record.expect("Invalid record");
                 cbl.remove_seq(&seqrec.seq());
