@@ -11,14 +11,19 @@ use num_traits::int::PrimInt;
 /// - `T`: the integer type used to store the words.
 /// - `WIDTH`: the width of the monotone queue (`BITS` - `M` + 1 for minimizers of `M` bits).
 #[derive(Debug, Default)]
-pub struct NecklaceQueue<const BITS: usize, T: PrimInt, const WIDTH: usize> {
+pub struct NecklaceQueue<
+    const BITS: usize,
+    T: PrimInt,
+    const WIDTH: usize,
+    const REVERSE: bool = false,
+> {
     word: T,
     min_queue: LexMinQueue<WIDTH, T>,
 }
 
 macro_rules! impl_necklace_queue {
 ($($T:ty),+) => {$(
-impl<const BITS: usize, const WIDTH: usize> NecklaceQueue<BITS, $T, WIDTH> {
+impl<const BITS: usize, const WIDTH: usize, const REVERSE: bool> NecklaceQueue<BITS, $T, WIDTH, REVERSE> {
     const M: usize = BITS - WIDTH + 1;
     const MASK: $T = (1 << BITS) - 1;
     const MIN_MASK: $T = (1 << Self::M) - 1;
@@ -46,38 +51,70 @@ impl<const BITS: usize, const WIDTH: usize> NecklaceQueue<BITS, $T, WIDTH> {
 
     /// Returns the necklace of the current word and its position.
     pub fn get_necklace_pos(&self) -> ($T, usize) {
-        min(
-            self.min_queue
+        if REVERSE {
+            min(
+                self.min_queue
+                    .iter_min_pos()
+                    .map(|p| (self.rotation(WIDTH - 1 - p), WIDTH - 1 - p))
+                    .min()
+                    .unwrap(),
+                (WIDTH..BITS)
+                    .map(|p| (self.rotation(p), p))
+                    .min()
+                    .unwrap(),
+            )
+        } else {
+            min(
+                self.min_queue
                 .iter_min_pos()
                 .map(|p| (self.rotation(p), p))
                 .min()
                 .unwrap(),
-            (WIDTH..BITS)
+                (WIDTH..BITS)
                 .map(|p| (self.rotation(p), p))
                 .min()
                 .unwrap(),
-        )
+            )
+        }
     }
 
     /// Inserts a whole word in the `NecklaceQueue`.
     pub fn insert_full(&mut self, word: $T) {
-        self.word = word & Self::MASK;
-        let vals = (0..WIDTH).map(|p|
-            (word >> (BITS - p - Self::M)) & Self::MIN_MASK
-        );
-        self.min_queue.insert_full(vals);
+        if REVERSE {
+            self.word = word & Self::MASK;
+            let vals = (0..WIDTH).map(|p|
+                (word >> p) & Self::MIN_MASK
+            );
+            self.min_queue.insert_full(vals);
+        } else {
+            self.word = word & Self::MASK;
+            let vals = (0..WIDTH).map(|p|
+                (word >> (BITS - p - Self::M)) & Self::MIN_MASK
+            );
+            self.min_queue.insert_full(vals);
+        }
     }
 
     /// Inserts a bit in the `NecklaceQueue`.
     pub fn insert(&mut self, x: $T) {
-        self.word = ((self.word << 1) & Self::MASK) | (x & 0b1);
-        self.min_queue.insert(self.word & Self::MIN_MASK);
+        if REVERSE {
+            self.word = (self.word >> 1) | ((x & 0b1) << (BITS - 1));
+            self.min_queue.insert(self.word >> (WIDTH - 1));
+        } else {
+            self.word = ((self.word << 1) & Self::MASK) | (x & 0b1);
+            self.min_queue.insert(self.word & Self::MIN_MASK);
+        }
     }
 
     /// Inserts two bits in the `NecklaceQueue`.
     pub fn insert2(&mut self, x: $T) {
-        self.word = ((self.word << 2) & Self::MASK) | (x & 0b11);
-        self.min_queue.insert2((self.word >> 1) & Self::MIN_MASK, self.word & Self::MIN_MASK);
+        if REVERSE {
+            self.word = (self.word >> 2) | ((x & 0b11) << (BITS - 2));
+            self.min_queue.insert2((self.word >> (WIDTH - 2)) & Self::MIN_MASK, self.word >> (WIDTH - 1));
+        } else {
+            self.word = ((self.word << 2) & Self::MASK) | (x & 0b11);
+            self.min_queue.insert2((self.word >> 1) & Self::MIN_MASK, self.word & Self::MIN_MASK);
+        }
     }
 }
 )*}}
@@ -98,5 +135,13 @@ mod tests {
         assert_eq!(necklace_queue.get_necklace_pos(), (0b00101101, 1));
         necklace_queue.insert(0);
         assert_eq!(necklace_queue.get_necklace_pos(), (0b00001011, BITS - 2));
+    }
+
+    #[test]
+    fn test_necklace_queue_rev() {
+        let mut necklace_queue = NecklaceQueue::<BITS, u64, WIDTH, true>::new_from_word(0b10010110);
+        assert_eq!(necklace_queue.get_necklace_pos(), (0b00101101, 1));
+        necklace_queue.insert(1);
+        assert_eq!(necklace_queue.get_necklace_pos(), (0b00101111, 2));
     }
 }
