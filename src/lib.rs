@@ -2,7 +2,7 @@
 #![feature(generic_const_exprs)]
 
 pub(crate) mod bitvector;
-pub(crate) mod cbl;
+pub mod cbl;
 pub(crate) mod ffi;
 pub mod kmer;
 pub mod necklace;
