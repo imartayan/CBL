@@ -1,3 +1,4 @@
+//! Fully dynamic sets of *k*-mers.
 #![allow(clippy::suspicious_arithmetic_impl)]
 
 use crate::kmer::{Base, IntKmer, Kmer, RevComp};
@@ -10,6 +11,22 @@ use std::collections::BTreeMap;
 
 const M: usize = 9;
 
+/// Size of a *k*-mer in bits
+pub const fn kmer_bits<const K: usize>() -> usize {
+    2 * K
+}
+
+/// Width of the necklace queue
+pub const fn queue_width<const K: usize>() -> usize {
+    kmer_bits::<K>().saturating_sub(M - 1)
+}
+
+/// Size of the suffixes in bits
+pub const fn suffix_bits<const K: usize, const PREFIX_BITS: usize>() -> usize {
+    (kmer_bits::<K>() + kmer_bits::<K>().next_power_of_two().ilog2() as usize)
+        .saturating_sub(PREFIX_BITS)
+}
+
 /// A fully dynamic set of *k*-mers.
 ///
 /// # Type Parameters
@@ -19,32 +36,27 @@ const M: usize = 9;
 #[derive(Serialize, Deserialize)]
 pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24>
 where
-    [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-        .saturating_sub(PREFIX_BITS)
-        .div_ceil(8)]:,
+    [(); kmer_bits::<K>()]:,
     [(); PREFIX_BITS.div_ceil(8)]:,
-    [(); (2 * K).saturating_sub(M - 1)]:,
+    [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+    [(); queue_width::<K>()]:,
 {
     canonical: bool,
-    wordset: WordSet<
-        PREFIX_BITS,
-        { (2 * K + (2 * K).next_power_of_two().ilog2() as usize).saturating_sub(PREFIX_BITS) },
-    >,
+    wordset: WordSet<PREFIX_BITS, { suffix_bits::<K, PREFIX_BITS>() }>,
     #[serde(skip)]
-    necklace_queue: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }>,
+    necklace_queue: NecklaceQueue<{ kmer_bits::<K>() }, T, { queue_width::<K>() }>,
     #[serde(skip)]
-    necklace_queue_rev: NecklaceQueue<{ 2 * K }, T, { (2 * K).saturating_sub(M - 1) }, true>,
+    necklace_queue_rev: NecklaceQueue<{ kmer_bits::<K>() }, T, { queue_width::<K>() }, true>,
 }
 
 macro_rules! impl_cbl {
     ($T:ty) => {
         impl<const K: usize, const PREFIX_BITS: usize> CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             const KMER_BITS: usize = 2 * K;
             const POS_BITS: usize = Self::KMER_BITS.next_power_of_two().ilog2() as usize;
@@ -61,11 +73,11 @@ macro_rules! impl_cbl {
                     canonical: false,
                     wordset: WordSet::new(),
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -82,11 +94,11 @@ macro_rules! impl_cbl {
                     canonical: true,
                     wordset: WordSet::new(),
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -130,7 +142,7 @@ macro_rules! impl_cbl {
             /// Returns the necklace transformation of a *k*-mer.
             #[inline]
             fn get_word(&self, kmer: IntKmer<K, $T>) -> $T {
-                let (necklace, pos) = necklace_pos::<{ 2 * K }, $T>(if self.canonical {
+                let (necklace, pos) = necklace_pos::<{ kmer_bits::<K>() }, $T>(if self.canonical {
                     kmer.canonical().to_int()
                 } else {
                     kmer.to_int()
@@ -142,7 +154,9 @@ macro_rules! impl_cbl {
             #[inline]
             fn recover_kmer(word: $T) -> IntKmer<K, $T> {
                 let (necklace, pos) = Self::split_necklace_pos(word);
-                IntKmer::<K, $T>::from_int(revert_necklace_pos::<{ 2 * K }, $T>(necklace, pos))
+                IntKmer::<K, $T>::from_int(revert_necklace_pos::<{ kmer_bits::<K>() }, $T>(
+                    necklace, pos,
+                ))
             }
 
             /// Returns `true` if the set contains the given *k*-mer, the *k*-mer must be packed into an [`IntKmer`].
@@ -317,11 +331,10 @@ macro_rules! impl_cbl {
 
         impl<const K: usize, const PREFIX_BITS: usize> Default for CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             fn default() -> Self {
                 Self::new()
@@ -330,11 +343,10 @@ macro_rules! impl_cbl {
 
         impl<const K: usize, const PREFIX_BITS: usize> BitOr<Self> for &mut CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             type Output = CBL<K, $T, PREFIX_BITS>;
 
@@ -348,11 +360,11 @@ macro_rules! impl_cbl {
                     canonical: self.canonical,
                     wordset: &mut self.wordset | &mut other.wordset,
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -362,11 +374,10 @@ macro_rules! impl_cbl {
         impl<const K: usize, const PREFIX_BITS: usize> BitOrAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             /// Perfom the union of `self` and `other` in place.
             fn bitor_assign(&mut self, other: &mut Self) {
@@ -380,11 +391,10 @@ macro_rules! impl_cbl {
 
         impl<const K: usize, const PREFIX_BITS: usize> BitAnd<Self> for &mut CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             type Output = CBL<K, $T, PREFIX_BITS>;
 
@@ -398,11 +408,11 @@ macro_rules! impl_cbl {
                     canonical: self.canonical,
                     wordset: &mut self.wordset & &mut other.wordset,
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -412,11 +422,10 @@ macro_rules! impl_cbl {
         impl<const K: usize, const PREFIX_BITS: usize> BitAndAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             /// Perform the intersection of `self` and `other` in place.
             fn bitand_assign(&mut self, other: &mut Self) {
@@ -430,11 +439,10 @@ macro_rules! impl_cbl {
 
         impl<const K: usize, const PREFIX_BITS: usize> Sub<Self> for &mut CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             type Output = CBL<K, $T, PREFIX_BITS>;
 
@@ -448,11 +456,11 @@ macro_rules! impl_cbl {
                     canonical: self.canonical,
                     wordset: &mut self.wordset - &mut other.wordset,
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -462,11 +470,10 @@ macro_rules! impl_cbl {
         impl<const K: usize, const PREFIX_BITS: usize> SubAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             /// Perform the difference of `self` and `other` in place.
             fn sub_assign(&mut self, other: &mut Self) {
@@ -480,11 +487,10 @@ macro_rules! impl_cbl {
 
         impl<const K: usize, const PREFIX_BITS: usize> BitXor<Self> for &mut CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             type Output = CBL<K, $T, PREFIX_BITS>;
 
@@ -498,11 +504,11 @@ macro_rules! impl_cbl {
                     canonical: self.canonical,
                     wordset: &mut self.wordset ^ &mut other.wordset,
                     necklace_queue:
-                        NecklaceQueue::<{ 2 * K }, $T, { (2 * K).saturating_sub(M - 1) }>::new(),
+                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
-                        { 2 * K },
+                        { kmer_bits::<K>() },
                         $T,
-                        { (2 * K).saturating_sub(M - 1) },
+                        { queue_width::<K>() },
                         true,
                     >::new(),
                 }
@@ -512,11 +518,10 @@ macro_rules! impl_cbl {
         impl<const K: usize, const PREFIX_BITS: usize> BitXorAssign<&mut Self>
             for CBL<K, $T, PREFIX_BITS>
         where
-            [(); (2 * K + (2 * K).next_power_of_two().ilog2() as usize)
-                .saturating_sub(PREFIX_BITS)
-                .div_ceil(8)]:,
+            [(); kmer_bits::<K>()]:,
             [(); PREFIX_BITS.div_ceil(8)]:,
-            [(); (2 * K).saturating_sub(M - 1)]:,
+            [(); suffix_bits::<K, PREFIX_BITS>().div_ceil(8)]:,
+            [(); queue_width::<K>()]:,
         {
             /// Perform the symmetric difference of `self` and `other` in place.
             fn bitxor_assign(&mut self, other: &mut Self) {
