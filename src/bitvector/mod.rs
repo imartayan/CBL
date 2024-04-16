@@ -84,6 +84,20 @@ impl<'a> Iterator for BitvectorIterator<'a> {
     }
 }
 
+impl Clone for Bitvector {
+    fn clone(&self) -> Self {
+        let res = Self::new_with_bitlength(self.bitlength());
+        let num_blocks = self.bv.num_blocks();
+        for i in 0..num_blocks {
+            let block = self.bv.get_block(i);
+            if block != 0 {
+                res.bv.update_block(i, block);
+            }
+        }
+        res
+    }
+}
+
 impl Serialize for Bitvector {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let num_blocks = self.bv.num_blocks();

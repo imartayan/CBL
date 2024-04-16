@@ -1,7 +1,7 @@
 use core::cmp::min;
 use std::collections::VecDeque;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LexMinQueue<const WIDTH: usize, T: Ord + Copy> {
     deq: VecDeque<(T, usize)>,
     min_pos: VecDeque<usize>,

@@ -10,7 +10,7 @@ use num_traits::int::PrimInt;
 /// - `BITS`: the number of bits of the words.
 /// - `T`: the integer type used to store the words.
 /// - `WIDTH`: the width of the monotone queue (`BITS` - `M` + 1 for minimizers of `M` bits).
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct NecklaceQueue<
     const BITS: usize,
     T: PrimInt,

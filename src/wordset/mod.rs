@@ -330,6 +330,24 @@ where
     }
 }
 
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Clone for WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    fn clone(&self) -> Self {
+        let tiered = TieredVec28::new().within_unique_ptr();
+        for i in 0..self.tiered.len() {
+            tiered.insert(i, self.tiered.get(i));
+        }
+        Self {
+            prefixes: self.prefixes.clone(),
+            tiered,
+            suffix_containers: self.suffix_containers.clone(),
+            empty_containers: self.empty_containers.clone(),
+        }
+    }
+}
+
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> Serialize
     for WordSet<PREFIX_BITS, SUFFIX_BITS>
 where

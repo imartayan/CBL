@@ -33,7 +33,7 @@ pub const fn suffix_bits<const K: usize, const PREFIX_BITS: usize>() -> usize {
 /// - `K`: the length of the *k*-mers, it must be ≤ 59.
 /// - `T`: the integer type used to store *k*-mers, it must be large enough to store $2k + \lg(2k)$ bits.
 /// - `PREFIX_BITS` (optional): the size of the prefixes in bits.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CBL<const K: usize, T: Base, const PREFIX_BITS: usize = 24>
 where
     [(); kmer_bits::<K>()]:,
@@ -541,8 +541,6 @@ impl_cbl!(u128);
 
 #[cfg(test)]
 mod tests {
-    use crate::kmer::RevComp;
-
     use super::*;
     use itertools::Itertools;
     use rand::thread_rng;
