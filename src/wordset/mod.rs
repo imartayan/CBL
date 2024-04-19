@@ -409,8 +409,9 @@ where
 mod tests {
     use super::*;
     use itertools::Itertools;
+    use rand::rngs::StdRng;
     use rand::seq::SliceRandom;
-    use rand::thread_rng;
+    use rand::{thread_rng, SeedableRng};
 
     const N: usize = 1_000_000;
     const PREFIX_BITS: usize = 24;
@@ -434,10 +435,34 @@ mod tests {
             assert!(!set.contains(i));
         }
         for &i in v0.iter() {
-            set.remove(i);
+            assert!(set.remove(i));
         }
         for &i in v0.iter() {
             assert!(!set.contains(i));
+        }
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_random_insert_contains_remove() {
+        let mut v0 = (0..(2 * N)).step_by(2).collect_vec();
+        let mut rng = StdRng::seed_from_u64(42);
+        v0.shuffle(&mut rng);
+
+        let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
+        for &i in v0.iter() {
+            set.insert(i);
+        }
+        assert_eq!(set.count(), N);
+        v0.shuffle(&mut rng);
+
+        for &i in v0.iter() {
+            assert!(set.contains(i));
+        }
+        v0.shuffle(&mut rng);
+
+        for &i in v0.iter() {
+            assert!(set.remove(i));
         }
         assert!(set.is_empty());
     }
