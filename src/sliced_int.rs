@@ -7,7 +7,7 @@ use num_traits::sign::Unsigned;
 use num_traits::PrimInt;
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SlicedInt<const BYTES: usize>([u8; BYTES]);
 
@@ -77,6 +77,13 @@ impl<const BYTES: usize> SlicedInt<BYTES> {
 impl<const BYTES: usize> Default for SlicedInt<BYTES> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<const BYTES: usize> std::fmt::Debug for SlicedInt<BYTES> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)?;
+        Ok(())
     }
 }
 
