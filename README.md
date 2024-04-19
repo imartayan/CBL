@@ -52,7 +52,7 @@ cargo +nightly add --git https://github.com/imartayan/CBL.git
 ```
 or by adding the following dependency in your `Cargo.toml`
 ```toml
-cbl = { git = https://github.com/imartayan/CBL.git }
+cbl = { git = "https://github.com/imartayan/CBL.git" }
 ```
 If the build fails, try to install [additional headers](#additional-headers-for-linux).
 
