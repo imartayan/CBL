@@ -19,3 +19,21 @@ include_cpp! {
 }
 
 pub use ffi::*;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tiered_remove() {
+        let tv = TieredVec28::new().within_unique_ptr();
+        for i in 0..5 {
+            tv.insert(i, i as u32);
+        }
+        for i in 0..5 {
+            assert_eq!(tv.get(i), i as u32);
+        }
+        tv.remove(2);
+        assert_eq!(tv.get(2), 3);
+    }
+}
