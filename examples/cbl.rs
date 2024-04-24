@@ -2,12 +2,12 @@
 #![feature(generic_const_exprs)]
 
 use bincode::{DefaultOptions, Options};
-use cbl::CBL;
+use cbl::{kmer::Kmer, CBL};
 use clap::{Args, Parser, Subcommand};
 use needletail::{parse_fastx_file, FastxReader};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{stdout, BufReader, BufWriter, Write};
 use std::path::Path;
 
 // Loads runtime-provided constants for which declarations
@@ -31,6 +31,8 @@ enum Command {
     Build(BuildArgs),
     /// Count the k-mers contained in an index
     Count(IndexArgs),
+    /// List the k-mers contained in an index
+    List(ListArgs),
     /// Query an index for every k-mer contained in a FASTA/Q file
     Query(QueryArgs),
     /// Add the k-mers of a FASTA/Q file to an index
@@ -65,6 +67,15 @@ struct BuildArgs {
 struct IndexArgs {
     /// Index file (CBL format)
     index: String,
+}
+
+#[derive(Args, Debug)]
+struct ListArgs {
+    /// Index file (CBL format)
+    index: String,
+    /// Output file (write to stdout by default)
+    #[arg(short, long)]
+    output: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -160,6 +171,31 @@ fn main() {
                 eprintln!("It contains {} canonical {K}-mers", cbl.count());
             } else {
                 eprintln!("It contains {} {K}-mers", cbl.count());
+            }
+        }
+        Command::List(args) => {
+            let index_filename = args.index.as_str();
+            let cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
+            if cbl.is_canonical() {
+                eprintln!("Listing canonical {K}-mers contained in {index_filename}");
+            } else {
+                eprintln!("Listing {K}-mers contained in {index_filename}");
+            }
+            if let Some(output_filename) = args.output {
+                let output_filename = output_filename.as_str();
+                let file = File::create(output_filename)
+                    .unwrap_or_else(|_| panic!("Failed to open {}", output_filename));
+                let mut writer = BufWriter::new(file);
+                for kmer in cbl.iter() {
+                    writer.write_all(&kmer.to_nucs()).unwrap();
+                    writer.write_all(b"\n").unwrap();
+                }
+            } else {
+                let mut writer = stdout().lock();
+                for kmer in cbl.iter() {
+                    writer.write_all(&kmer.to_nucs()).unwrap();
+                    writer.write_all(b"\n").unwrap();
+                }
             }
         }
         Command::Query(args) => {
