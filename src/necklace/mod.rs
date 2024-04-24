@@ -14,9 +14,9 @@ pub fn necklace_pos<const BITS: usize, T: PrimInt>(word: T) -> (T, usize) {
     let mut necklace = word;
     let mut rot = word;
     let mut pos = 0;
-    for i in (1..BITS).rev() {
+    for i in (0..BITS).rev() {
         rot = ((rot & T::one()) << (BITS - 1)) | (rot >> 1);
-        if rot < necklace {
+        if rot <= necklace {
             necklace = rot;
             pos = i;
         }
@@ -75,6 +75,24 @@ mod tests {
             assert_eq!(
                 necklace_queue.get_necklace_pos(),
                 necklace_queue_rev.get_necklace_pos(),
+            );
+        }
+    }
+
+    #[test]
+    fn test_same_necklace_periodic_words() {
+        let mut rng = thread_rng();
+        for _ in 0..N {
+            let mut word: u64 = rng.gen::<u64>();
+            word >>= 34;
+            word = (word << 30) | word;
+            let necklace_queue = NecklaceQueue::<60, u64, 50>::new_from_word(word);
+            assert_eq!(
+                necklace_pos::<60, u64>(word),
+                necklace_queue.get_necklace_pos(),
+                "{}\n{:060b}",
+                word,
+                word
             );
         }
     }
