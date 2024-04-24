@@ -4,10 +4,14 @@
 use crate::kmer::{Base, IntKmer, Kmer, RevComp};
 use crate::necklace::*;
 use crate::wordset::*;
+use bincode::{DefaultOptions, Options};
 use core::cmp::min;
 use core::ops::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
 
 const M: usize = 9;
 
@@ -102,6 +106,42 @@ macro_rules! impl_cbl {
                         true,
                     >::new(),
                 }
+            }
+
+            /// Saves the set to a file.
+            pub fn save_to_file<P: AsRef<Path> + Copy>(&self, path: P) {
+                let index_file = File::create(path).unwrap_or_else(|_| {
+                    panic!("Failed to create {}", path.as_ref().to_str().unwrap())
+                });
+                let mut writer = BufWriter::new(index_file);
+                DefaultOptions::new()
+                    .with_varint_encoding()
+                    .reject_trailing_bytes()
+                    .serialize_into(&mut writer, self)
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Failed to write index to {}",
+                            path.as_ref().to_str().unwrap()
+                        )
+                    });
+            }
+
+            /// Loads the set from a file.
+            pub fn load_from_file<P: AsRef<Path> + Copy>(path: P) -> Self {
+                let index_file = File::open(path).unwrap_or_else(|_| {
+                    panic!("Failed to open {}", path.as_ref().to_str().unwrap())
+                });
+                let reader = BufReader::new(index_file);
+                DefaultOptions::new()
+                    .with_varint_encoding()
+                    .reject_trailing_bytes()
+                    .deserialize_from(reader)
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Failed to load index from {}",
+                            path.as_ref().to_str().unwrap()
+                        )
+                    })
             }
 
             /// Returns `true` if the set stores canonical *k*-mers.
