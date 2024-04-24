@@ -70,6 +70,19 @@ where
     }
 
     #[inline]
+    pub fn merge_prefix_suffix<T: PrimInt + Unsigned + AsPrimitive<usize>>(
+        prefix: usize,
+        suffix: SlicedInt<{ SUFFIX_BITS.div_ceil(8) }>,
+    ) -> T
+    where
+        usize: AsPrimitive<T>,
+    {
+        let prefix: T = prefix.as_();
+        let suffix: T = suffix.get();
+        (prefix << SUFFIX_BITS) | suffix
+    }
+
+    #[inline]
     pub fn contains<T: PrimInt + Unsigned + AsPrimitive<usize>>(&self, word: T) -> bool {
         let (prefix, suffix) = Self::split_prefix_suffix(word);
         if !self.prefixes.contains(prefix) {
@@ -323,10 +336,10 @@ where
             self.suffix_iter = Some(self.wordset.suffix_containers[id].iter());
             self.suffix = self.suffix_iter.as_mut().unwrap().next();
         }
-        let prefix: T = self.prefix?.as_();
-        let suffix: T = self.suffix?.get();
+        let word =
+            WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge_prefix_suffix(self.prefix?, self.suffix?);
         self.suffix = self.suffix_iter.as_mut().unwrap().next();
-        Some((prefix << SUFFIX_BITS) | suffix)
+        Some(word)
     }
 }
 
