@@ -543,8 +543,10 @@ impl_cbl!(u128);
 mod tests {
     use super::*;
     use itertools::Itertools;
-    use rand::thread_rng;
+    use rand::rngs::StdRng;
+    use rand::seq::SliceRandom;
     use rand::Rng;
+    use rand::{thread_rng, SeedableRng};
 
     const K: usize = 59;
     type T = u128;
@@ -573,6 +575,48 @@ mod tests {
             set.remove(kmer);
         }
         for (i, kmer) in KmerT::iter_from_nucs(nucs.iter()).enumerate() {
+            assert!(
+                !set.contains(kmer),
+                "kmer {i} false positive: {:0b}",
+                kmer.to_int()
+            );
+        }
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_random_insert_contains_remove() {
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut nucs = Vec::with_capacity(N);
+        for _ in 0..N {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+        let mut kmers = KmerT::iter_from_nucs(nucs.iter()).collect_vec();
+        kmers.sort_unstable();
+        kmers.dedup();
+        kmers.shuffle(&mut rng);
+
+        let mut set = CBL::<K, T>::new();
+        for &kmer in kmers.iter() {
+            assert!(set.insert(kmer));
+        }
+        kmers.shuffle(&mut rng);
+
+        for (i, &kmer) in kmers.iter().enumerate() {
+            assert!(
+                set.contains(kmer),
+                "kmer {i} false negative: {:0b}",
+                kmer.to_int()
+            );
+        }
+        kmers.shuffle(&mut rng);
+
+        for &kmer in kmers.iter() {
+            assert!(set.remove(kmer));
+        }
+        kmers.shuffle(&mut rng);
+
+        for (i, &kmer) in kmers.iter().enumerate() {
             assert!(
                 !set.contains(kmer),
                 "kmer {i} false positive: {:0b}",

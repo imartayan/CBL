@@ -426,7 +426,7 @@ mod tests {
         v1.shuffle(&mut rng);
         let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
         for &i in v0.iter() {
-            set.insert(i);
+            assert!(set.insert(i));
         }
         for &i in v0.iter() {
             assert!(set.contains(i));
@@ -451,7 +451,7 @@ mod tests {
 
         let mut set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::new();
         for &i in v0.iter() {
-            set.insert(i);
+            assert!(set.insert(i));
         }
         assert_eq!(set.count(), N);
         v0.shuffle(&mut rng);
