@@ -137,6 +137,7 @@ Usage: cbl <COMMAND>
 Commands:
   build        Build an index containing the k-mers of a FASTA/Q file
   count        Count the k-mers contained in an index
+  list         List the k-mers contained in an index
   query        Query an index for every k-mer contained in a FASTA/Q file
   insert       Add the k-mers of a FASTA/Q file to an index
   remove       Remove the k-mers of a FASTA/Q file from an index
