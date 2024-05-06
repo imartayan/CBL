@@ -67,36 +67,31 @@ macro_rules! impl_cbl {
             const CHUNK_SIZE: usize = 2048;
 
             /// Creates an empty [`CBL`].
+            #[inline]
             pub fn new() -> Self {
-                assert!(
-                    Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
-                    "Cannot fit a {K}-mer and its length in a {}-bit integer",
-                    <$T>::BITS
-                );
-                Self {
-                    canonical: false,
-                    wordset: WordSet::new(),
-                    necklace_queue:
-                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
-                    necklace_queue_rev: NecklaceQueue::<
-                        { kmer_bits::<K>() },
-                        $T,
-                        { queue_width::<K>() },
-                        true,
-                    >::new(),
-                }
+                Self::new_with_wordset(WordSet::new(), false)
             }
 
             /// Creates an empty [`CBL`] for canonical *k*-mers.
+            #[inline]
             pub fn new_canonical() -> Self {
+                Self::new_with_wordset(WordSet::new(), true)
+            }
+
+            /// Creates a [`CBL`] with the given wordset.
+            #[inline]
+            fn new_with_wordset(
+                wordset: WordSet<PREFIX_BITS, { suffix_bits::<K, PREFIX_BITS>() }>,
+                canonical: bool,
+            ) -> Self {
                 assert!(
                     Self::KMER_BITS + Self::POS_BITS <= <$T>::BITS as usize,
                     "Cannot fit a {K}-mer and its length in a {}-bit integer",
                     <$T>::BITS
                 );
                 Self {
-                    canonical: true,
-                    wordset: WordSet::new(),
+                    canonical,
+                    wordset,
                     necklace_queue:
                         NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
                     necklace_queue_rev: NecklaceQueue::<
@@ -396,18 +391,10 @@ macro_rules! impl_cbl {
                     self.canonical, other.canonical,
                     "One of the index is canonical while the other isn't"
                 );
-                Self::Output {
-                    canonical: self.canonical,
-                    wordset: &mut self.wordset | &mut other.wordset,
-                    necklace_queue:
-                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
-                    necklace_queue_rev: NecklaceQueue::<
-                        { kmer_bits::<K>() },
-                        $T,
-                        { queue_width::<K>() },
-                        true,
-                    >::new(),
-                }
+                Self::Output::new_with_wordset(
+                    &mut self.wordset | &mut other.wordset,
+                    self.canonical,
+                )
             }
         }
 
@@ -444,18 +431,10 @@ macro_rules! impl_cbl {
                     self.canonical, other.canonical,
                     "One of the index is canonical while the other isn't"
                 );
-                Self::Output {
-                    canonical: self.canonical,
-                    wordset: &mut self.wordset & &mut other.wordset,
-                    necklace_queue:
-                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
-                    necklace_queue_rev: NecklaceQueue::<
-                        { kmer_bits::<K>() },
-                        $T,
-                        { queue_width::<K>() },
-                        true,
-                    >::new(),
-                }
+                Self::Output::new_with_wordset(
+                    &mut self.wordset & &mut other.wordset,
+                    self.canonical,
+                )
             }
         }
 
@@ -492,18 +471,10 @@ macro_rules! impl_cbl {
                     self.canonical, other.canonical,
                     "One of the index is canonical while the other isn't"
                 );
-                Self::Output {
-                    canonical: self.canonical,
-                    wordset: &mut self.wordset - &mut other.wordset,
-                    necklace_queue:
-                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
-                    necklace_queue_rev: NecklaceQueue::<
-                        { kmer_bits::<K>() },
-                        $T,
-                        { queue_width::<K>() },
-                        true,
-                    >::new(),
-                }
+                Self::Output::new_with_wordset(
+                    &mut self.wordset - &mut other.wordset,
+                    self.canonical,
+                )
             }
         }
 
@@ -540,18 +511,10 @@ macro_rules! impl_cbl {
                     self.canonical, other.canonical,
                     "One of the index is canonical while the other isn't"
                 );
-                Self::Output {
-                    canonical: self.canonical,
-                    wordset: &mut self.wordset ^ &mut other.wordset,
-                    necklace_queue:
-                        NecklaceQueue::<{ kmer_bits::<K>() }, $T, { queue_width::<K>() }>::new(),
-                    necklace_queue_rev: NecklaceQueue::<
-                        { kmer_bits::<K>() },
-                        $T,
-                        { queue_width::<K>() },
-                        true,
-                    >::new(),
-                }
+                Self::Output::new_with_wordset(
+                    &mut self.wordset ^ &mut other.wordset,
+                    self.canonical,
+                )
             }
         }
 
