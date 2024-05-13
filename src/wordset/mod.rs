@@ -235,12 +235,14 @@ where
         }
     }
 
+    #[inline]
     fn adapt_container_grow(&mut self, id: usize) {
         if self.suffix_containers[id].len() > Self::THRESHOLD {
             self.suffix_containers[id].as_trie();
         }
     }
 
+    #[inline]
     fn adapt_container_shrink(&mut self, id: usize) {
         if self.suffix_containers[id].len() <= Self::THRESHOLD {
             self.suffix_containers[id].as_vec();
