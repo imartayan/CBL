@@ -95,7 +95,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    fn insert_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+    pub fn insert_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         match &mut self.0 {
             TrieOrVec::Vec(vec) => {
                 let stop = vec.len();
@@ -123,7 +123,7 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
-    fn remove_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
+    pub fn remove_sorted_iter<I: Iterator<Item = SlicedInt<BYTES>>>(&mut self, it: I) {
         match &mut self.0 {
             TrieOrVec::Vec(vec) => {
                 let stop = vec.len();
@@ -168,12 +168,33 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
+    pub fn sort(&mut self) {
+        if let TrieOrVec::Vec(vec) = &mut self.0 {
+            vec.sort_unstable();
+        }
+    }
+
+    #[inline]
     pub fn iter<'a>(&'a self) -> TrieVecIterator<'a, BYTES>
     where
         SlicedInt<BYTES>: 'a,
     {
         match &self.0 {
             TrieOrVec::Vec(vec) => TrieVecIterator::Vec(vec.iter()),
+            TrieOrVec::Trie(trie, _) => TrieVecIterator::Trie(trie.iter()),
+        }
+    }
+
+    #[inline]
+    pub fn iter_sorted<'a>(&'a mut self) -> TrieVecIterator<'a, BYTES>
+    where
+        SlicedInt<BYTES>: 'a,
+    {
+        match &mut self.0 {
+            TrieOrVec::Vec(vec) => {
+                vec.sort_unstable();
+                TrieVecIterator::Vec(vec.iter())
+            }
             TrieOrVec::Trie(trie, _) => TrieVecIterator::Trie(trie.iter()),
         }
     }

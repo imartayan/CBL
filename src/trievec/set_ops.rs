@@ -6,14 +6,8 @@ impl<const BYTES: usize> BitOr<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
     fn bitor(self, other: Self) -> Self::Output {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
@@ -48,14 +42,8 @@ impl<const BYTES: usize> BitOr<Self> for &mut TrieVec<BYTES> {
 
 impl<const BYTES: usize> BitOrAssign<&mut Self> for TrieVec<BYTES> {
     fn bitor_assign(&mut self, other: &mut Self) {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
@@ -86,14 +74,8 @@ impl<const BYTES: usize> BitAnd<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
     fn bitand(self, other: Self) -> Self::Output {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
@@ -118,14 +100,8 @@ impl<const BYTES: usize> BitAnd<Self> for &mut TrieVec<BYTES> {
 
 impl<const BYTES: usize> BitAndAssign<&mut Self> for TrieVec<BYTES> {
     fn bitand_assign(&mut self, other: &mut Self) {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut deletions = Vec::new();
@@ -156,14 +132,8 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
     fn sub(self, other: Self) -> Self::Output {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
@@ -192,14 +162,8 @@ impl<const BYTES: usize> Sub<Self> for &mut TrieVec<BYTES> {
 
 impl<const BYTES: usize> SubAssign<&mut Self> for TrieVec<BYTES> {
     fn sub_assign(&mut self, other: &mut Self) {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut deletions = Vec::new();
@@ -226,14 +190,8 @@ impl<const BYTES: usize> BitXor<Self> for &mut TrieVec<BYTES> {
     type Output = TrieVec<BYTES>;
 
     fn bitxor(self, other: Self) -> Self::Output {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
@@ -267,14 +225,8 @@ impl<const BYTES: usize> BitXor<Self> for &mut TrieVec<BYTES> {
 
 impl<const BYTES: usize> BitXorAssign<&mut Self> for TrieVec<BYTES> {
     fn bitxor_assign(&mut self, other: &mut Self) {
-        if let TrieOrVec::Vec(vec) = &mut self.0 {
-            vec.sort_unstable();
-        }
-        if let TrieOrVec::Vec(vec) = &mut other.0 {
-            vec.sort_unstable();
-        }
-        let mut self_iter = self.iter();
-        let mut other_iter = other.iter();
+        let mut self_iter = self.iter_sorted();
+        let mut other_iter = other.iter_sorted();
         let mut x = self_iter.next();
         let mut y = other_iter.next();
         let mut insertions = Vec::new();
