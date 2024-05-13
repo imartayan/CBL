@@ -1,7 +1,72 @@
-use super::WordSet;
+use super::{TrieVec, WordSet};
 use core::ops::*;
+use iter_set_ops::*;
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    pub fn merge(wordsets: &mut [Self]) -> Self {
+        let mut res = Self::new();
+        let ptr = wordsets.as_mut_ptr();
+        let mut prefix_iters = wordsets
+            .iter()
+            .map(|set| set.prefixes.iter().enumerate())
+            .collect_vec();
+        for details in merge_iters_detailed_by(&mut prefix_iters, |(_, x), (_, y)| x.cmp(y)) {
+            let prefix = (details[0].1).1;
+            let mut suffix_iters = Vec::new();
+            for (i, (rank, _)) in details {
+                // each mutable reference is unique since each index is unique
+                let set = unsafe { ptr.add(i).as_mut().unwrap_unchecked() };
+                let id = set.tiered.get(rank) as usize;
+                suffix_iters.push(set.suffix_containers[id].iter_sorted())
+            }
+            let mut container = TrieVec::new();
+            container.insert_sorted_iter(merge_iters(&mut suffix_iters));
+            let rank = res.suffix_containers.len();
+            res.suffix_containers.push(container);
+            res.tiered.insert(rank, rank as u32);
+            res.prefixes.insert(prefix);
+        }
+        res
+    }
+}
+
+impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> WordSet<PREFIX_BITS, SUFFIX_BITS>
+where
+    [(); SUFFIX_BITS.div_ceil(8)]:,
+{
+    pub fn intersect(wordsets: &mut [Self]) -> Self {
+        let mut res = Self::new();
+        let ptr = wordsets.as_mut_ptr();
+        let mut prefix_iters = wordsets
+            .iter()
+            .map(|set| set.prefixes.iter().enumerate())
+            .collect_vec();
+        for details in intersect_iters_detailed_by(&mut prefix_iters, |(_, x), (_, y)| x.cmp(y)) {
+            let prefix = details[0].1;
+            let mut suffix_iters = Vec::new();
+            for (i, &(rank, _)) in details.iter().enumerate() {
+                // each mutable reference is unique since each index is unique
+                let set = unsafe { ptr.add(i).as_mut().unwrap_unchecked() };
+                let id = set.tiered.get(rank) as usize;
+                suffix_iters.push(set.suffix_containers[id].iter_sorted())
+            }
+            let mut container = TrieVec::new();
+            container.insert_sorted_iter(intersect_iters(&mut suffix_iters));
+            if !container.is_empty() {
+                let rank = res.suffix_containers.len();
+                res.suffix_containers.push(container);
+                res.tiered.insert(rank, rank as u32);
+                res.prefixes.insert(prefix);
+            }
+        }
+        res
+    }
+}
 
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> BitOr<Self>
     for &mut WordSet<PREFIX_BITS, SUFFIX_BITS>
@@ -334,7 +399,7 @@ mod tests {
     use itertools::Itertools;
 
     const N: usize = 1_000_000;
-    const PREFIX_BITS: usize = 24;
+    const PREFIX_BITS: usize = 16;
     const SUFFIX_BITS: usize = 8;
 
     #[test]
@@ -487,5 +552,32 @@ mod tests {
         for &i in v2.iter() {
             assert!(set.contains(i), "false negative for {i}");
         }
+    }
+
+    #[test]
+    fn test_multi_merge() {
+        const C: usize = 10;
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for (i, set) in sets.iter_mut().enumerate() {
+            let v = (i..(C * N)).step_by(C).collect_vec();
+            set.insert_batch(&v);
+        }
+        let set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(&mut sets);
+        assert_eq!(
+            set.iter::<usize>().collect_vec(),
+            (0..(C * N)).collect_vec()
+        );
+    }
+
+    #[test]
+    fn test_multi_intersect() {
+        const C: usize = 10;
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for (i, set) in sets.iter_mut().enumerate() {
+            let v = (i..(C * N)).step_by(C).collect_vec();
+            set.insert_batch(&v);
+        }
+        let set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(&mut sets);
+        assert!(set.is_empty());
     }
 }
