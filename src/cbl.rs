@@ -103,6 +103,16 @@ macro_rules! impl_cbl {
                 }
             }
 
+            /// Merge multiple [`CBL`] into a new one.
+            #[inline]
+            pub fn merge(mut cbls: Vec<&mut Self>) -> Self {
+                let canonical = cbls[0].is_canonical();
+                assert!(cbls.iter().all(|cbl| cbl.is_canonical() == canonical));
+                let wordsets: Vec<_> = cbls.iter_mut().map(|cbl| &mut cbl.wordset).collect();
+                let merged = WordSet::merge(wordsets);
+                Self::new_with_wordset(merged, canonical)
+            }
+
             /// Saves the set to a file.
             pub fn save_to_file<P: AsRef<Path> + Copy>(&self, path: P) {
                 let index_file = File::create(path).unwrap_or_else(|_| {
@@ -827,6 +837,30 @@ mod tests {
         set ^= &mut set2;
         for kmer in KmerT::iter_from_nucs(nucs.iter()) {
             assert_eq!(set.contains(kmer), !set2.contains(kmer));
+        }
+    }
+
+    #[test]
+    fn test_multi_merge() {
+        const C: usize = 10;
+        const N: usize = 100_000;
+
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut nucs = Vec::with_capacity(C * N);
+        for _ in 0..(C * N + K - 1) {
+            nucs.push(u8::bases()[rng.gen_range(0..4)].to_nuc());
+        }
+
+        let mut sets = vec![CBL::<K, T>::new(); C];
+        for (i, set) in sets.iter_mut().enumerate() {
+            set.insert_seq(&nucs[(i * N)..((i + 1) * N)]);
+        }
+
+        let res = CBL::<K, T>::merge(sets.iter_mut().collect());
+        for set in sets.iter() {
+            for kmer in set.iter() {
+                assert!(res.contains(kmer));
+            }
         }
     }
 }
