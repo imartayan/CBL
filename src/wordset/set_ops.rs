@@ -16,16 +16,23 @@ where
             .map(|set| set.prefixes.iter().enumerate())
             .collect_vec();
         for details in merge_iters_detailed_by(&mut prefix_iters, |(_, x), (_, y)| x.cmp(y)) {
+            let container = if details.len() == 1 {
+                let (i, (rank, _)) = details[0];
+                let id = wordsets[i].tiered.get(rank) as usize;
+                wordsets[i].suffix_containers[id].clone()
+            } else {
+                let mut suffix_iters = Vec::new();
+                for &(i, (rank, _)) in details.iter() {
+                    // each mutable reference is unique since each index is unique
+                    let set = unsafe { ptr.add(i).as_mut().unwrap_unchecked() };
+                    let id = set.tiered.get(rank) as usize;
+                    suffix_iters.push(set.suffix_containers[id].iter_sorted());
+                }
+                let mut container = TrieVec::new();
+                container.insert_sorted_iter(merge_iters(&mut suffix_iters));
+                container
+            };
             let prefix = (details[0].1).1;
-            let mut suffix_iters = Vec::new();
-            for (i, (rank, _)) in details {
-                // each mutable reference is unique since each index is unique
-                let set = unsafe { ptr.add(i).as_mut().unwrap_unchecked() };
-                let id = set.tiered.get(rank) as usize;
-                suffix_iters.push(set.suffix_containers[id].iter_sorted());
-            }
-            let mut container = TrieVec::new();
-            container.insert_sorted_iter(merge_iters(&mut suffix_iters));
             let rank = res.suffix_containers.len();
             res.suffix_containers.push(container);
             res.tiered.insert(rank, rank as u32);
@@ -397,6 +404,7 @@ where
 mod tests {
     use super::*;
     use itertools::Itertools;
+    use rand::{rngs::StdRng, Rng, SeedableRng};
 
     const N: usize = 1_000_000;
     const PREFIX_BITS: usize = 16;
@@ -579,5 +587,43 @@ mod tests {
         }
         let set = WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(sets.iter_mut().collect());
         assert!(set.is_empty());
+    }
+
+    #[test]
+    fn test_random_multi_merge() {
+        const C: usize = 10;
+        const N: usize = 100_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for set in sets.iter_mut() {
+            for _ in 0..N {
+                set.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        let res = WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(sets.iter_mut().collect());
+        for set in sets.iter() {
+            for word in set.iter::<u32>() {
+                assert!(res.contains(word));
+            }
+        }
+    }
+
+    #[test]
+    fn test_random_multi_intersect() {
+        const C: usize = 5;
+        const N: usize = 1_000_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for set in sets.iter_mut() {
+            for _ in 0..N {
+                set.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        let res = WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(sets.iter_mut().collect());
+        for word in res.iter::<u32>() {
+            for set in sets.iter() {
+                assert!(set.contains(word));
+            }
+        }
     }
 }
