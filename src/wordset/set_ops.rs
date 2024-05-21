@@ -203,6 +203,7 @@ where
             while prefix.is_some() && prefix.unwrap() < other_prefix {
                 // remove container
                 let id = self.tiered.get(rank) as usize;
+                self.suffix_containers[id].clear();
                 self.empty_containers.push(id);
                 self.tiered.remove(rank);
                 prefix = prefix_iter.next();
@@ -221,6 +222,14 @@ where
                 }
                 prefix = prefix_iter.next();
             }
+        }
+        while prefix.is_some() {
+            // remove container
+            let id = self.tiered.get(rank) as usize;
+            self.suffix_containers[id].clear();
+            self.empty_containers.push(id);
+            self.tiered.remove(rank);
+            prefix = prefix_iter.next();
         }
         self.prefixes &= &other.prefixes;
         for prefix in empty_prefixes {
@@ -405,6 +414,7 @@ mod tests {
     use super::*;
     use itertools::Itertools;
     use rand::{rngs::StdRng, Rng, SeedableRng};
+    use std::collections::HashSet;
 
     const N: usize = 1_000_000;
     const PREFIX_BITS: usize = 16;
@@ -563,6 +573,86 @@ mod tests {
     }
 
     #[test]
+    fn test_random_union() {
+        const C: usize = 10;
+        const N: usize = 100_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut sets = vec![HashSet::with_capacity(N); C];
+        for set in sets.iter_mut() {
+            for _ in 0..N {
+                set.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        let mut wordsets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for i in 0..C {
+            for &word in sets[i].iter() {
+                wordsets[i].insert(word);
+            }
+            assert_eq!(sets[i].len(), wordsets[i].count());
+        }
+        let mut res_in_place = wordsets[0].clone();
+        for wordset in wordsets.iter_mut().skip(1) {
+            res_in_place |= wordset;
+        }
+        let mut res_copy = wordsets[0].clone();
+        for wordset in wordsets.iter_mut().skip(1) {
+            res_copy = &mut res_copy | wordset;
+        }
+        let mut expected = sets[0].clone();
+        for set in sets.iter().skip(1) {
+            expected = &expected | set;
+        }
+        assert_eq!(res_in_place.count(), expected.len());
+        assert_eq!(res_copy.count(), expected.len());
+        for x in res_in_place.iter() {
+            assert!(expected.contains(&x));
+        }
+        for x in res_copy.iter() {
+            assert!(expected.contains(&x));
+        }
+    }
+
+    #[test]
+    fn test_random_intersection() {
+        const C: usize = 6;
+        const N: usize = 2_000_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut sets = vec![HashSet::with_capacity(N); C];
+        for set in sets.iter_mut() {
+            for _ in 0..N {
+                set.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        let mut wordsets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for i in 0..C {
+            for &word in sets[i].iter() {
+                wordsets[i].insert(word);
+            }
+            assert_eq!(sets[i].len(), wordsets[i].count());
+        }
+        let mut res_in_place = wordsets[0].clone();
+        for wordset in wordsets.iter_mut().skip(1) {
+            res_in_place &= wordset;
+        }
+        let mut res_copy = wordsets[0].clone();
+        for wordset in wordsets.iter_mut().skip(1) {
+            res_copy = &mut res_copy & wordset;
+        }
+        let mut expected = sets[0].clone();
+        for set in sets.iter().skip(1) {
+            expected = &expected & set;
+        }
+        assert_eq!(res_in_place.count(), expected.len());
+        assert_eq!(res_copy.count(), expected.len());
+        for x in res_in_place.iter() {
+            assert!(expected.contains(&x));
+        }
+        for x in res_copy.iter() {
+            assert!(expected.contains(&x));
+        }
+    }
+
+    #[test]
     fn test_multi_merge() {
         const C: usize = 10;
         let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
@@ -625,5 +715,123 @@ mod tests {
                 assert!(set.contains(word));
             }
         }
+    }
+
+    #[test]
+    fn test_associative_merge() {
+        const C: usize = 10;
+        const N: usize = 100_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut hsets = vec![HashSet::with_capacity(N); C];
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for hset in hsets.iter_mut() {
+            for _ in 0..N {
+                hset.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        for i in 0..C {
+            for &word in hsets[i].iter() {
+                sets[i].insert(word);
+            }
+            assert_eq!(hsets[i].len(), sets[i].count());
+        }
+
+        let res10 = WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(sets.iter_mut().collect());
+
+        let mut res5 =
+            WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(sets.iter_mut().take(5).collect());
+        res5 |= &mut WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(
+            sets.iter_mut().skip(5).take(5).collect(),
+        );
+
+        let mut res2 =
+            WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(sets.iter_mut().take(2).collect());
+        for i in (0..C).step_by(2).skip(1) {
+            res2 |= &mut WordSet::<PREFIX_BITS, SUFFIX_BITS>::merge(
+                sets.iter_mut().skip(i).take(2).collect(),
+            );
+        }
+
+        let mut res1 = sets[0].clone();
+        for set in sets.iter_mut().skip(1) {
+            res1 |= set;
+        }
+
+        assert_eq!(res10.count(), res1.count());
+        assert_eq!(res5.count(), res1.count());
+        assert_eq!(res2.count(), res1.count());
+    }
+
+    #[test]
+    fn test_associative_intersect() {
+        const C: usize = 6;
+        const N: usize = 2_000_000;
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut hsets = vec![HashSet::with_capacity(N); C];
+        let mut sets = vec![WordSet::<PREFIX_BITS, SUFFIX_BITS>::new(); C];
+        for hset in hsets.iter_mut() {
+            for _ in 0..N {
+                hset.insert(rng.gen::<u32>() >> 8);
+            }
+        }
+        for i in 0..C {
+            for &word in hsets[i].iter() {
+                sets[i].insert(word);
+            }
+            assert_eq!(hsets[i].len(), sets[i].count());
+        }
+
+        let res6 = WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(sets.iter_mut().collect());
+
+        let mut res3_vec: Vec<_> = (0..C)
+            .step_by(3)
+            .map(|i| {
+                WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(
+                    sets.iter_mut().skip(i).take(3).collect(),
+                )
+            })
+            .collect();
+        let mut res3 = res3_vec[0].clone();
+        for chunk in res3_vec.iter_mut() {
+            res3 &= chunk;
+        }
+        let mut res3_bis = res3_vec[0].clone();
+        for chunk in res3_vec.iter_mut() {
+            res3_bis = &mut res3_bis & chunk;
+        }
+        let res3_alt =
+            WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(res3_vec.iter_mut().collect());
+
+        let mut res2_vec: Vec<_> = (0..C)
+            .step_by(2)
+            .map(|i| {
+                WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(
+                    sets.iter_mut().skip(i).take(2).collect(),
+                )
+            })
+            .collect();
+        let mut res2 = res2_vec[0].clone();
+        for chunk in res2_vec.iter_mut() {
+            res2 &= chunk;
+        }
+        let mut res2_bis = res2_vec[0].clone();
+        for chunk in res2_vec.iter_mut() {
+            res2_bis = &mut res2_bis & chunk;
+        }
+        let res2_alt =
+            WordSet::<PREFIX_BITS, SUFFIX_BITS>::intersect(res2_vec.iter_mut().collect());
+
+        let mut res1 = sets[0].clone();
+        for set in sets.iter_mut().skip(1) {
+            res1 &= set;
+        }
+
+        assert_eq!(res6.count(), res1.count());
+        assert_eq!(res3.count(), res1.count());
+        assert_eq!(res3_bis.count(), res1.count());
+        assert_eq!(res3_alt.count(), res1.count());
+        assert_eq!(res2.count(), res1.count());
+        assert_eq!(res2_bis.count(), res1.count());
+        assert_eq!(res2_alt.count(), res1.count());
     }
 }
