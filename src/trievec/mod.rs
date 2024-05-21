@@ -42,6 +42,18 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
+    pub fn clear(&mut self) {
+        match &mut self.0 {
+            TrieOrVec::Vec(vec) => {
+                vec.clear();
+            }
+            TrieOrVec::Trie(_, _) => {
+                self.0 = TrieOrVec::Vec(Vec::new());
+            }
+        }
+    }
+
+    #[inline]
     pub fn contains(&self, x: &SlicedInt<BYTES>) -> bool {
         match &self.0 {
             TrieOrVec::Vec(vec) => vec.contains(x),
