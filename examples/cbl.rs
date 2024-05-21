@@ -316,6 +316,10 @@ fn main() {
             let buckets_size_count = cbl.buckets_size_count();
             let total_buckets: usize = buckets_size_count.iter().map(|(_, &c)| c).sum();
             let total_items: usize = buckets_size_count.iter().map(|(&s, &c)| s * c).sum();
+            eprintln!(
+                "The average bucket size is {:.1} items",
+                total_items as f64 / total_buckets as f64
+            );
             let mut bucket_count = 0;
             let mut item_count = 0;
             for (&size, &count) in buckets_size_count.iter() {
