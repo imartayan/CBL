@@ -34,6 +34,14 @@ impl<const BYTES: usize> TrieVec<BYTES> {
     }
 
     #[inline]
+    pub fn count_nodes(&self) -> usize {
+        match &self.0 {
+            TrieOrVec::Vec(vec) => vec.len(),
+            TrieOrVec::Trie(trie, _) => trie.count_nodes(),
+        }
+    }
+
+    #[inline]
     pub fn is_empty(&self) -> bool {
         match &self.0 {
             TrieOrVec::Vec(vec) => vec.is_empty(),

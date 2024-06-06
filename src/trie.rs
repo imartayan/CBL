@@ -25,6 +25,11 @@ impl<const BYTES: usize> Trie<BYTES> {
     }
 
     #[inline(always)]
+    pub fn count_nodes(&self) -> usize {
+        self.0.count_nodes()
+    }
+
+    #[inline(always)]
     pub fn contains(&self, bytes: &[u8]) -> bool {
         self.0.contains(bytes)
     }
@@ -77,6 +82,20 @@ impl<const BYTES: usize> TrieNode<BYTES> {
                 for child in trie.children.iter() {
                     queue.push_back(&child.0);
                 }
+            }
+        }
+        count
+    }
+
+    pub fn count_nodes(&self) -> usize {
+        let mut count = 0;
+        let mut queue = VecDeque::new();
+        queue.push_back(self);
+        while !queue.is_empty() {
+            let trie = queue.pop_front().unwrap();
+            count += 1;
+            for child in trie.children.iter() {
+                queue.push_back(&child.0);
             }
         }
         count

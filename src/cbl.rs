@@ -382,6 +382,18 @@ macro_rules! impl_cbl {
             pub fn buckets_load_repartition(&self) -> BTreeMap<usize, f64> {
                 self.wordset.buckets_load_repartition()
             }
+
+            /// Returns an iterator over the prefixes of the set, with the number of nodes of the associated buckets.
+            #[inline]
+            pub fn buckets_nodes(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+                self.wordset.buckets_nodes()
+            }
+
+            /// Returns a Map storing the number of buckets for each node count.
+            #[inline]
+            pub fn buckets_node_count(&self) -> BTreeMap<usize, usize> {
+                self.wordset.buckets_node_count()
+            }
         }
 
         impl<const K: usize, const PREFIX_BITS: usize> Default for CBL<K, $T, PREFIX_BITS>

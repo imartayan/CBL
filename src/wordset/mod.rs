@@ -18,10 +18,10 @@ pub struct WordSet<const PREFIX_BITS: usize, const SUFFIX_BITS: usize>
 where
     [(); SUFFIX_BITS.div_ceil(8)]:,
 {
-    prefixes: Bitvector,
-    tiered: UniquePtr<TieredVec28>,
-    suffix_containers: Vec<TrieVec<{ SUFFIX_BITS.div_ceil(8) }>>,
-    empty_containers: Vec<usize>,
+    pub(crate) prefixes: Bitvector,
+    pub(crate) tiered: UniquePtr<TieredVec28>,
+    pub(crate) suffix_containers: Vec<TrieVec<{ SUFFIX_BITS.div_ceil(8) }>>,
+    pub(crate) empty_containers: Vec<usize>,
 }
 
 impl<const PREFIX_BITS: usize, const SUFFIX_BITS: usize> WordSet<PREFIX_BITS, SUFFIX_BITS>
@@ -276,6 +276,21 @@ where
             .iter()
             .map(|(&s, &c)| (s, (s * c) as f64 / total_size as f64))
             .collect()
+    }
+
+    pub fn buckets_nodes(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.prefixes.iter().enumerate().map(|(rank, prefix)| {
+            let id = self.tiered.get(rank) as usize;
+            (prefix, self.suffix_containers[id].count_nodes())
+        })
+    }
+
+    pub fn buckets_node_count(&self) -> BTreeMap<usize, usize> {
+        let mut node_count = BTreeMap::new();
+        for (_, size) in self.buckets_nodes() {
+            node_count.entry(size).and_modify(|e| *e += 1).or_insert(1);
+        }
+        node_count
     }
 
     #[inline]
