@@ -8,6 +8,21 @@ use num_traits::int::PrimInt;
 use num_traits::sign::Unsigned;
 use serde::{Deserialize, Serialize};
 
+const BASE_LOOKUP: [u8; 4] = [b'A', b'C', b'T', b'G'];
+
+static NUC_LOOKUP: [Option<u8>; 256] = {
+    let mut lookup = [None; 256];
+    lookup[BASE_LOOKUP[0b00] as usize] = Some(0b00);
+    lookup[BASE_LOOKUP[0b01] as usize] = Some(0b01);
+    lookup[BASE_LOOKUP[0b10] as usize] = Some(0b10);
+    lookup[BASE_LOOKUP[0b11] as usize] = Some(0b11);
+    lookup[b'a' as usize] = lookup[b'A' as usize];
+    lookup[b'c' as usize] = lookup[b'C' as usize];
+    lookup[b'g' as usize] = lookup[b'G' as usize];
+    lookup[b't' as usize] = lookup[b'T' as usize];
+    lookup
+};
+
 /// A trait providing an integer representation of nucleotides.
 pub trait Base: PrimInt + Unsigned + AsPrimitive<usize> + Display + Binary {
     const BASE_MASK: Self;
@@ -192,16 +207,12 @@ macro_rules! impl_t {
         const BASE_MASK: Self = 0b11;
         #[inline]
         fn from_nuc(b: &u8) -> Option<Self> {
-            match b {
-                b'A' | b'C' | b'G' | b'T' => Some(((b / 2) % 4) as $T),
-                _ => None,
-            }
+            unsafe { *NUC_LOOKUP.get_unchecked(*b as usize) }.map(|x| x as $T)
         }
         #[inline]
         fn to_nuc(self) -> u8 {
-            const BASE_LOOKUP: [u8; 4] = [b'A', b'C', b'T', b'G'];
             debug_assert!(self < 4, "Invalid base");
-            BASE_LOOKUP[self as usize]
+            unsafe { *BASE_LOOKUP.get_unchecked(self as usize) }
         }
         #[inline]
         fn complement(self) -> Self {
