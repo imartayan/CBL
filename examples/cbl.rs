@@ -4,6 +4,7 @@
 use bincode::{DefaultOptions, Options};
 use cbl::{kmer::Kmer, CBL};
 use clap::{Args, Parser, Subcommand};
+use const_format::formatcp;
 use needletail::{parse_fastx_file, FastxReader};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fs::File;
@@ -19,7 +20,7 @@ pub mod constants {
 use constants::{K, PREFIX_BITS, T};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = formatcp!("CBL compiled for K={K}"), long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -338,6 +339,30 @@ fn main() {
             }
             let (max_prefix, max_size) = cbl.buckets_sizes().max_by_key(|&(_, size)| size).unwrap();
             eprintln!("The biggest bucket (of size {max_size}) corresponds to prefix {max_prefix}");
+            let buckets_node_count = cbl.buckets_node_count();
+            let mut vec_count = 0;
+            let mut vec_node_count = 0;
+            let mut trie_count = 0;
+            let mut trie_node_count = 0;
+            for (&nodes, &count) in buckets_node_count.iter() {
+                if nodes <= 1024 {
+                    vec_count += count;
+                    vec_node_count += nodes * count;
+                } else {
+                    trie_count += count;
+                    trie_node_count += nodes * count;
+                }
+            }
+            eprintln!(
+                "{vec_count} vecs, average node count = {:.1}",
+                vec_node_count as f64 / vec_count as f64
+            );
+            eprintln!(
+                "{trie_count} tries, average node count = {:.1}",
+                trie_node_count as f64 / trie_count as f64
+            );
+            let total_count = total_buckets + vec_node_count + trie_node_count;
+            eprintln!("{total_count} nodes in total");
         }
     }
 }
