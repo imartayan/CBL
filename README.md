@@ -169,10 +169,10 @@ cargo +nightly doc --lib --no-deps --open
 
 ## Citation
 
-> Martayan, I., Cazaux, B., Limasset, A., and Marchet, C. Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets. https://doi.org/10.1093/bioinformatics/btae217
+> Conway-Bromage-Lyndon (CBL): an exact, dynamic representation of k-mer sets. Martayan, I., Cazaux, B., Limasset, A., and Marchet, C. https://doi.org/10.1093/bioinformatics/btae217
 
 ```bibtex
-@article{10.1093/bioinformatics/btae217,
+@article{cbl,
   title   = {{Conway–Bromage–Lyndon (CBL): an exact, dynamic representation of k-mer sets}},
   author  = {Martayan, Igor and Cazaux, Bastien and Limasset, Antoine and Marchet, Camille},
   journal = {Bioinformatics},
