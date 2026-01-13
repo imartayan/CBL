@@ -164,17 +164,17 @@ fn main() {
                     cbl.insert_seq(&seqrec.seq());
                 }
 
-                // Determine output filename
+                // Determine output filename based on number of inputs
                 let output_filename = if args.input.len() == 1 {
-                    // Single input: use provided output or default to input_filename + "_index"
+                    // Single file input use provided output or default to input_filename + "_index"
                     args.output.clone().unwrap_or_else(|| format!("{input_filename}_index"))
                 } else {
                     // Multiple inputs: use the input file's base name as prefix
                     let base_name = Path::new(&input_filename)
                         .file_stem()
-                        .unwrap()
+                        .expect(&format!("Input basename of '{}' is not valid", input_filename))
                         .to_str()
-                        .unwrap();
+                        .expect(&format!("Input basename of '{}' is not valid UTF-8", input_filename));
                     format!("{base_name}_index")
                 };
 
