@@ -54,9 +54,9 @@ enum Command {
 
 #[derive(Args, Debug)]
 struct BuildArgs {
-    /// Input file (FASTA/Q, possibly gzipped)
-    input: String,
-    /// Output file (no serialization by default)
+    /// List of input files (FASTA/Q, possibly gzipped)
+    input: Vec<String>,
+    /// Output file for a single input, or prefix for multiple files
     #[arg(short, long)]
     output: Option<String>,
     /// Use canonical k-mers
@@ -145,23 +145,39 @@ fn main() {
     let args = Cli::parse();
     match args.command {
         Command::Build(args) => {
-            let input_filename = args.input.as_str();
             let mut cbl = if args.canonical {
                 CBL::<K, T, PREFIX_BITS>::new_canonical()
             } else {
                 CBL::<K, T, PREFIX_BITS>::new()
             };
-            let mut reader = read_fasta(input_filename);
-            if cbl.is_canonical() {
-                eprintln!("Building the index of canonical {K}-mers contained in {input_filename}");
-            } else {
-                eprintln!("Building the index of {K}-mers contained in {input_filename}");
-            }
-            while let Some(record) = reader.next() {
-                let seqrec = record.unwrap_or_else(|_| panic!("Invalid record"));
-                cbl.insert_seq(&seqrec.seq());
-            }
-            if let Some(output_filename) = args.output {
+
+            for input_filename in args.input {
+                let mut reader = read_fasta(input_filename);
+                eprintln!(
+                    "Building the index of {}{K}-mers contained in {}",
+                    if cbl.is_canonical() { "canonical " } else { "" },
+                    input_filename
+                );
+
+                while let Some(record) = reader.next() {
+                    let seqrec = record.unwrap_or_else(|_| panic!("Invalid record"));
+                    cbl.insert_seq(&seqrec.seq());
+                }
+
+                // Determine output filename
+                let output_filename = if args.input.len() == 1 {
+                    // Single input: use provided output or default to input_filename + "_index"
+                    args.output.clone().unwrap_or_else(|| format!("{input_filename}_index"))
+                } else {
+                    // Multiple inputs: use the input file's base name as prefix
+                    let base_name = Path::new(&input_filename)
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap();
+                    format!("{base_name}_index")
+                };
+
                 write_index(&cbl, output_filename.as_str());
             }
         }
