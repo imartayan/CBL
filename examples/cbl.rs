@@ -109,8 +109,8 @@ struct SetOpsArgs {
     output: Option<String>,
 }
 
-fn read_fasta<P: AsRef<Path> + Copy>(path: P) -> Box<dyn FastxReader> {
-    parse_fastx_file(path)
+fn read_fasta<P: AsRef<Path>>(path: P) -> Box<dyn FastxReader> {
+    parse_fastx_file(&path)
         .unwrap_or_else(|_| panic!("Failed to open {}", path.as_ref().to_str().unwrap()))
 }
 
