@@ -151,7 +151,7 @@ fn main() {
                 CBL::<K, T, PREFIX_BITS>::new()
             };
 
-            for input_filename in args.input {
+            for input_filename in &args.input{
                 let mut reader = read_fasta(input_filename);
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
