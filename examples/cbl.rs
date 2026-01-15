@@ -177,7 +177,7 @@ fn main() {
                 }
 
                 let output_filename = if args.input.len() == 1 {
-                    if let Some(ref out) = args.output_filename {
+                    if let Some(ref out) = args.output {
                         out.clone()
                     } else {
                         let base_name = Path::new(input_filename)
@@ -198,7 +198,7 @@ fn main() {
                     format!("{base_name}_index")
                 };
                 
-                let output_path = PathBuf::from(&args.outdir).join(output_filename);
+                let output_path = PathBuf::from(&args.output_dir).join(output_filename);
                 write_index(&cbl, output_path.as_path());
             }
         }
