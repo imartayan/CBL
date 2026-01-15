@@ -29,7 +29,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Build an index containing the k-mers of a FASTA/Q file
+    /// Build a separate k-mer index for each input FASTA/Q file.
     Build(BuildArgs),
     /// Count the k-mers contained in an index
     Count(IndexArgs),
