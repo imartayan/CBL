@@ -10,6 +10,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Write};
 use std::path::Path;
+use std::path::PathBuf;
 
 // Loads runtime-provided constants for which declarations
 // will be generated at `$OUT_DIR/constants.rs`.
@@ -54,12 +55,12 @@ enum Command {
 
 #[derive(Args, Debug)]
 struct BuildArgs {
-    /// List of input files (FASTA/Q, possibly gzipped)
+    /// List of input files (FASTA/Q, possibly gzipped) or single input file. [e.g cbl build file1.fasta file2.fasta ...]
     input: Vec<String>,
     /// Output directory (defaults to current directory)
     #[arg(long, default_value = ".")]
-    outdir: String,
-    /// Output file name for a single input
+    output_dir: String,
+    /// Output file name (will be used for a single input only)
     #[arg(short, long)]
     output: Option<String>,
     /// Use canonical k-mers
@@ -176,7 +177,7 @@ fn main() {
                 }
 
                 let output_filename = if args.input.len() == 1 {
-                    if let Some(ref out) = args.output {
+                    if let Some(ref out) = args.output_filename {
                         out.clone()
                     } else {
                         let base_name = Path::new(input_filename)
@@ -196,8 +197,9 @@ fn main() {
                         });
                     format!("{base_name}_index")
                 };
-
-                write_index(&cbl, output_filename.as_str());
+                
+                let output_path = PathBuf::from(&args.outdir).join(output_filename);
+                write_index(&cbl, output_path.as_path());
             }
         }
 
