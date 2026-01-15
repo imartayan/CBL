@@ -56,7 +56,10 @@ enum Command {
 struct BuildArgs {
     /// List of input files (FASTA/Q, possibly gzipped)
     input: Vec<String>,
-    /// Output file for a single input, or prefix for multiple files
+    /// Output directory (defaults to current directory)
+    #[arg(long, default_value = ".")]
+    outdir: String,
+    /// Output file name for a single input
     #[arg(short, long)]
     output: Option<String>,
     /// Use canonical k-mers
@@ -145,13 +148,21 @@ fn main() {
     let args = Cli::parse();
     match args.command {
         Command::Build(args) => {
-            let mut cbl = if args.canonical {
-                CBL::<K, T, PREFIX_BITS>::new_canonical()
-            } else {
-                CBL::<K, T, PREFIX_BITS>::new()
-            };
+
+            if args.input.len() > 1 && args.output.is_some() {
+                eprintln!(
+                    "Warning: --output is ignored when multiple input files are provided. \
+                    Output files will be named <input>_index."
+                );
+            }
 
             for input_filename in &args.input{
+
+                let mut cbl = if args.canonical {
+                    CBL::<K, T, PREFIX_BITS>::new_canonical()
+                } else {
+                    CBL::<K, T, PREFIX_BITS>::new()
+                };
                 let mut reader = read_fasta(input_filename);
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
@@ -164,23 +175,32 @@ fn main() {
                     cbl.insert_seq(&seqrec.seq());
                 }
 
-                // Determine output filename based on number of inputs
                 let output_filename = if args.input.len() == 1 {
-                    // Single file input use provided output or default to input_filename + "_index"
-                    args.output.clone().unwrap_or_else(|| format!("{input_filename}_index"))
+                    if let Some(ref out) = args.output {
+                        out.clone()
+                    } else {
+                        let base_name = Path::new(input_filename)
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or_else(|| {
+                                panic!("Input basename of '{}' is not valid", input_filename)
+                            });
+                        format!("{base_name}_index")
+                    }
                 } else {
-                    // Multiple inputs: use the input file's base name as prefix
-                    let base_name = Path::new(&input_filename)
+                    let base_name = Path::new(input_filename)
                         .file_stem()
-                        .expect(&format!("Input basename of '{}' is not valid", input_filename))
-                        .to_str()
-                        .expect(&format!("Input basename of '{}' is not valid UTF-8", input_filename));
+                        .and_then(|s| s.to_str())
+                        .unwrap_or_else(|| {
+                            panic!("Input basename of '{}' is not valid", input_filename)
+                        });
                     format!("{base_name}_index")
                 };
 
                 write_index(&cbl, output_filename.as_str());
             }
         }
+
         Command::Count(args) => {
             let index_filename = args.index.as_str();
             let cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
