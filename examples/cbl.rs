@@ -167,31 +167,30 @@ fn main() {
                     CBL::<K, T, PREFIX_BITS>::new()
                 };
                 
-                let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
+                // Try to open the file
+                let reader = match read_fasta(input_filename) {
+                    Ok(r) => r, // Ok, assign reader
                     Err(err) => {
                         eprintln!("Skipping file '{}': {}", input_filename, err);
-                        continue; // jumps to next iteration
+                        continue; // skip this file, go to next iteration
                     }
-                };  
+                };
 
+                // Now reader is in scope here
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
                     if cbl.is_canonical() { "canonical " } else { "" },
                     input_filename
                 );
 
-                while let Some(record) = reader.next() {
+                // Iterate safely over FASTA records
+                for record in reader {
                     match record {
-                        Ok(seqrec) => {
-                            cbl.insert_seq(&seqrec.seq());
-                        }
-                        Err(err) => {
-                            eprintln!("Skipping invalid record in {}: {}", input_filename, err);
-                            continue; // skip this record, keep reading others
-                        }
+                        Ok(seqrec) => cbl.insert_seq(&seqrec.seq()),
+                        Err(err) => eprintln!("Skipping invalid record in {}: {}", input_filename, err),
                     }
                 }
+            }
 
                 
 
