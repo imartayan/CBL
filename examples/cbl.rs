@@ -171,9 +171,9 @@ fn main() {
                     Ok(r) => r,
                     Err(err) => {
                         eprintln!("Skipping file '{}': {}", input_filename, err);
-                        continue; // skip to next file
+                        continue; // jumps to next iteration
                     }
-                };                
+                };  
 
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
