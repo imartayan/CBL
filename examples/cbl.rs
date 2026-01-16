@@ -144,6 +144,7 @@ fn write_index<S: Serialize, P: AsRef<Path>>(index: &S, path: P,) -> Result<(), 
         .reject_trailing_bytes()
         .serialize_into(&mut writer, &index)
         .unwrap();
+    Ok(())
 }
 
 fn main() {
