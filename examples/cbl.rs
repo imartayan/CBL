@@ -251,7 +251,6 @@ fn main() {
                 r
             } else {
                 eprintln!("Skipping file '{}'", input_filename);
-                continue;
             };
             if cbl.is_canonical() {
                 eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
