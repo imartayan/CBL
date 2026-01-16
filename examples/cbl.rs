@@ -171,10 +171,9 @@ fn main() {
                     Ok(r) => r,
                     Err(err) => {
                         eprintln!("Skipping file '{}': {}", input_filename, err);
-                        continue;
+                        continue; // skip to next file
                     }
-                };
-
+                };                
 
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
@@ -248,12 +247,6 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
-            };
             if cbl.is_canonical() {
                 eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
             } else {
@@ -281,12 +274,6 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
-            };
             if cbl.is_canonical() {
                 eprintln!(
                     "Adding the canonical {K}-mers contained in {input_filename} to the index"
@@ -306,12 +293,6 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
-            };
             if cbl.is_canonical() {
                 eprintln!(
                     "Removing the canonical {K}-mers contained in {input_filename} from the index"
