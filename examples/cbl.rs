@@ -166,13 +166,13 @@ fn main() {
                     CBL::<K, T, PREFIX_BITS>::new()
                 };
                 
-                let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                        continue;
-                    }
+                let mut reader = if let Ok(r) = read_fasta(input_filename) {
+                    r
+                } else {
+                    eprintln!("Skipping file '{}'", input_filename);
+                    continue;
                 };
+
 
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
@@ -246,11 +246,11 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
+            let mut reader = if let Ok(r) = read_fasta(input_filename) {
+                r
+            } else {
+                eprintln!("Skipping file '{}'", input_filename);
+                continue;
             };
             if cbl.is_canonical() {
                 eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
@@ -279,11 +279,10 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
+            let mut reader = if let Ok(r) = read_fasta(input_filename) {
+                r
+            } else {
+                eprintln!("Skipping file '{}'", input_filename);
             };
             if cbl.is_canonical() {
                 eprintln!(
@@ -304,11 +303,10 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = match read_fasta(input_filename) {
-                    Ok(r) => r,
-                    Err(err) => {
-                        eprintln!("Skipping file '{}': {}", input_filename, err);
-                    }
+            let mut reader = if let Ok(r) = read_fasta(input_filename) {
+                r
+            } else {
+                eprintln!("Skipping file '{}'", input_filename);
             };
             if cbl.is_canonical() {
                 eprintln!(
