@@ -159,7 +159,7 @@ fn main() {
                 );
             }
 
-            for input_filename in &args.input{
+            for input_filename in &args.input {
 
                 let mut cbl = if args.canonical {
                     CBL::<K, T, PREFIX_BITS>::new_canonical()
@@ -190,8 +190,6 @@ fn main() {
                         Err(err) => eprintln!("Skipping invalid record in {}: {}", input_filename, err),
                     }
                 }
-            }
-
                 
 
                 let output_filename = if args.input.len() == 1 {
