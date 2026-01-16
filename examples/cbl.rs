@@ -183,14 +183,16 @@ fn main() {
 
                 while let Some(record) = reader.next() {
                     match record {
-                        Ok(seqrec) => { cbl.insert_seq(&seqrec.seq()); 
-                    } 
-                    Err(err) => {
-                        eprintln!("Skipping invalid record in {}: {}", input_filename, err);
-                        continue; // skip this record, keep reading others
+                        Ok(seqrec) => {
+                            cbl.insert_seq(&seqrec.seq());
+                        }
+                        Err(err) => {
+                            eprintln!("Skipping invalid record in {}: {}", input_filename, err);
+                            continue; // skip this record, keep reading others
+                        }
                     }
                 }
-            }
+
                 
 
                 let output_filename = if args.input.len() == 1 {
