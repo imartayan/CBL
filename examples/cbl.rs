@@ -167,11 +167,12 @@ fn main() {
                     CBL::<K, T, PREFIX_BITS>::new()
                 };
                 
-                let mut reader = if let Ok(r) = read_fasta(input_filename) {
-                    r
-                } else {
-                    eprintln!("Skipping file '{}'", input_filename);
-                    continue;
+                let mut reader = match read_fasta(input_filename) {
+                    Ok(r) => r,
+                    Err(err) => {
+                        eprintln!("Skipping file '{}': {}", input_filename, err);
+                        continue;
+                    }
                 };
 
 
