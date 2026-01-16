@@ -45,7 +45,7 @@ impl<const BYTES: usize> Trie<BYTES> {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> TrieIterator<BYTES> {
+    pub fn iter(&self) -> TrieIterator<'_, BYTES> {
         self.0.iter()
     }
 }
@@ -162,7 +162,7 @@ impl<const BYTES: usize> TrieNode<BYTES> {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> TrieIterator<BYTES> {
+    pub fn iter(&self) -> TrieIterator<'_, BYTES> {
         TrieIterator {
             trie: self,
             index_iter: self.bv.iter(),

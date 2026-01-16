@@ -52,7 +52,7 @@ impl Bitvector {
     }
 
     #[inline]
-    pub fn iter(&self) -> BitvectorIterator {
+    pub fn iter(&self) -> BitvectorIterator<'_> {
         BitvectorIterator {
             bitvector: &self.bv,
             block_index: 0,

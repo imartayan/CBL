@@ -63,7 +63,7 @@ impl TinyBitvector {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> TinyBitvectorIterator {
+    pub fn iter(&self) -> TinyBitvectorIterator<'_> {
         TinyBitvectorIterator {
             blocks: &self.0,
             block_index: 0,
