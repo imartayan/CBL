@@ -142,8 +142,8 @@ fn write_index<S: Serialize, P: AsRef<Path>>(index: &S, path: P,) -> Result<(), 
     DefaultOptions::new()
         .with_varint_encoding()
         .reject_trailing_bytes()
-        .serialize_into(&mut writer, &index)
-        .unwrap();
+        .serialize_into(&mut writer, index)
+        .map_err(|e| format!("Failed to serialize index: {}", e))?;
     Ok(())
 }
 
