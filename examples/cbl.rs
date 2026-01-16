@@ -113,9 +113,9 @@ struct SetOpsArgs {
     output: Option<String>,
 }
 
-fn read_fasta<P: AsRef<Path>>(path: P) -> Box<dyn FastxReader> {
+fn read_fasta<P: AsRef<Path>>(path: P) -> Result<Box<dyn FastxReader>, String> {
     parse_fastx_file(&path)
-        .unwrap_or_else(|_| panic!("Failed to open {}", path.as_ref().to_str().unwrap()))
+        .map_err(|e| format!("Failed to open {}: {}",path.as_ref().display(),e)) // don't panic here, let the caller handle the error
 }
 
 fn read_index<D: DeserializeOwned, P: AsRef<Path> + Copy>(path: P) -> D {
@@ -133,11 +133,12 @@ fn read_index<D: DeserializeOwned, P: AsRef<Path> + Copy>(path: P) -> D {
         .unwrap()
 }
 
-fn write_index<S: Serialize, P: AsRef<Path> + Copy>(index: &S, path: P) {
-    let output = File::create(path)
-        .unwrap_or_else(|_| panic!("Failed to open {}", path.as_ref().to_str().unwrap()));
+
+fn write_index<S: Serialize, P: AsRef<Path>>(index: &S, path: P,) -> Result<(), String> {
+    let path_ref = path.as_ref();
+    let output = File::create(path_ref).map_err(|e| format!("Failed to create {}: {}",path_ref.display(),e))?; // don't panic here, let the caller handle the error ? means won't carry on executing write_index if error occurs
     let mut writer = BufWriter::new(output);
-    eprintln!("Writing the index to {}", path.as_ref().to_str().unwrap());
+    eprintln!("Writing the index to {}", path_ref.display());
     DefaultOptions::new()
         .with_varint_encoding()
         .reject_trailing_bytes()
@@ -164,7 +165,15 @@ fn main() {
                 } else {
                     CBL::<K, T, PREFIX_BITS>::new()
                 };
-                let mut reader = read_fasta(input_filename);
+                
+                let mut reader = match read_fasta(input_filename) {
+                    Ok(r) => r,
+                    Err(err) => {
+                        eprintln!("Skipping file '{}': {}", input_filename, err);
+                        continue;
+                    }
+                };
+
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
                     if cbl.is_canonical() { "canonical " } else { "" },
@@ -183,18 +192,14 @@ fn main() {
                         let base_name = Path::new(input_filename)
                             .file_stem()
                             .and_then(|s| s.to_str())
-                            .unwrap_or_else(|| {
-                                panic!("Input basename of '{}' is not valid", input_filename)
-                            });
+                            .unwrap();
                         format!("{base_name}_index")
                     }
                 } else {
                     let base_name = Path::new(input_filename)
                         .file_stem()
                         .and_then(|s| s.to_str())
-                        .unwrap_or_else(|| {
-                            panic!("Input basename of '{}' is not valid", input_filename)
-                        });
+                        .unwrap();
                     format!("{base_name}_index")
                 };
                 
@@ -241,7 +246,13 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = read_fasta(input_filename);
+                            let mut reader = match read_fasta(input_filename) {
+                    Ok(r) => r,
+                    Err(err) => {
+                        eprintln!("Skipping file '{}': {}", input_filename, err);
+                        continue;
+                    }
+                };
             if cbl.is_canonical() {
                 eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
             } else {
@@ -269,7 +280,13 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = read_fasta(input_filename);
+            let mut reader = match read_fasta(input_filename) {
+                    Ok(r) => r,
+                    Err(err) => {
+                        eprintln!("Skipping file '{}': {}", input_filename, err);
+                        continue;
+                    }
+                };
             if cbl.is_canonical() {
                 eprintln!(
                     "Adding the canonical {K}-mers contained in {input_filename} to the index"
@@ -289,7 +306,13 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
-            let mut reader = read_fasta(input_filename);
+            let mut reader = match read_fasta(input_filename) {
+                    Ok(r) => r,
+                    Err(err) => {
+                        eprintln!("Skipping file '{}': {}", input_filename, err);
+                        continue;
+                    }
+                };
             if cbl.is_canonical() {
                 eprintln!(
                     "Removing the canonical {K}-mers contained in {input_filename} from the index"
