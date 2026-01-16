@@ -21,6 +21,9 @@ using Layer24 =
 // 5 + 5 + 5 + 5 + 8 = 28
 using Layer28 =
     LayerItr<LayerEnd, Layer<32, Layer<32, Layer<32, Layer<32, Layer<256>>>>>>;
+// 5 + 5 + 5 + 6 + 9 = 30
+using Layer30 =
+    LayerItr<LayerEnd, Layer<32, Layer<32, Layer<32, Layer<64, Layer<512>>>>>>;
 // 5 + 6 + 6 + 6 + 9 = 32
 using Layer32 =
     LayerItr<LayerEnd, Layer<32, Layer<64, Layer<64, Layer<64, Layer<512>>>>>>;
@@ -82,4 +85,5 @@ defTieredVec(16, uint16_t);
 defTieredVec(20, uint32_t);
 defTieredVec(24, uint32_t);
 defTieredVec(28, uint32_t);
+defTieredVec(30, uint32_t);
 defTieredVec(32, uint32_t);

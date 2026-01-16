@@ -1,7 +1,8 @@
 mod set_ops;
 
 use crate::bitvector::*;
-use crate::ffi::{TieredVec28, UniquePtr, WithinUniquePtr};
+use crate::ffi::TieredVec32 as TieredVec; // default tiered vector
+use crate::ffi::{UniquePtr, WithinUniquePtr};
 use crate::sliced_int::SlicedInt;
 use crate::trievec::*;
 use num_traits::cast::AsPrimitive;
@@ -19,7 +20,7 @@ where
     [(); SUFFIX_BITS.div_ceil(8)]:,
 {
     pub(crate) prefixes: Bitvector,
-    pub(crate) tiered: UniquePtr<TieredVec28>,
+    pub(crate) tiered: UniquePtr<TieredVec>,
     pub(crate) suffix_containers: Vec<TrieVec<{ SUFFIX_BITS.div_ceil(8) }>>,
     pub(crate) empty_containers: Vec<usize>,
 }
@@ -34,13 +35,13 @@ where
 
     pub fn new() -> Self {
         assert!(
-            PREFIX_BITS <= 28,
-            "PREFIX_BITS={PREFIX_BITS} but it should be ≤ 28"
+            PREFIX_BITS <= 32,
+            "PREFIX_BITS={PREFIX_BITS} but it should be ≤ 32"
         );
         assert!(SUFFIX_BITS > 0, "SUFFIX_BITS should be ≠ 0");
         Self {
             prefixes: Bitvector::new_with_bitlength(Self::PREFIX_BITS),
-            tiered: TieredVec28::new().within_unique_ptr(),
+            tiered: TieredVec::new().within_unique_ptr(),
             suffix_containers: Vec::new(),
             empty_containers: Vec::new(),
         }
@@ -365,7 +366,7 @@ where
     [(); SUFFIX_BITS.div_ceil(8)]:,
 {
     fn clone(&self) -> Self {
-        let tiered = TieredVec28::new().within_unique_ptr();
+        let tiered = TieredVec::new().within_unique_ptr();
         for i in 0..self.tiered.len() {
             tiered.insert(i, self.tiered.get(i));
         }
@@ -410,7 +411,7 @@ where
     fn visit_map<M: MapAccess<'de>>(self, mut access: M) -> Result<Self::Value, M::Error> {
         let mut wordset = WordSet {
             prefixes: Bitvector::new_with_bitlength(PREFIX_BITS),
-            tiered: TieredVec28::new().within_unique_ptr(),
+            tiered: TieredVec::new().within_unique_ptr(),
             suffix_containers: Vec::with_capacity(access.size_hint().unwrap_or(0)),
             empty_containers: Vec::new(),
         };

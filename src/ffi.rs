@@ -13,6 +13,7 @@ include_cpp! {
     generate!("TieredVec20")
     generate!("TieredVec24")
     generate!("TieredVec28")
+    generate!("TieredVec30")
     generate!("TieredVec32")
 
     safety!(unsafe)
