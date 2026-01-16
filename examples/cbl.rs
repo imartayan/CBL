@@ -161,36 +161,34 @@ fn main() {
 
             for input_filename in &args.input {
 
+                // need to reinitialise cbl for each input file to prevent overwriting previous indexes
                 let mut cbl = if args.canonical {
                     CBL::<K, T, PREFIX_BITS>::new_canonical()
                 } else {
                     CBL::<K, T, PREFIX_BITS>::new()
                 };
                 
-                // Try to open the file
+                // Try to open the file if 
                 let reader = match read_fasta(input_filename) {
                     Ok(r) => r, // Ok, assign reader
-                    Err(err) => {
+                    Err(err) => { // If its an error then make sure the loop continues and print error message
                         eprintln!("Skipping file '{}': {}", input_filename, err);
                         continue; // skip this file, go to next iteration
                     }
                 };
 
-                // Now reader is in scope here
                 eprintln!(
                     "Building the index of {}{K}-mers contained in {}",
                     if cbl.is_canonical() { "canonical " } else { "" },
                     input_filename
                 );
 
-                // Iterate safely over FASTA records
                 for record in reader {
                     match record {
                         Ok(seqrec) => cbl.insert_seq(&seqrec.seq()),
                         Err(err) => eprintln!("Skipping invalid record in {}: {}", input_filename, err),
                     }
                 }
-                
 
                 let output_filename = if args.input.len() == 1 {
                     if let Some(ref out) = args.output {
@@ -253,6 +251,7 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
+            let mut reader = read_fasta(input_filename);
             if cbl.is_canonical() {
                 eprintln!("Querying the canonical {K}-mers contained in {input_filename}");
             } else {
@@ -280,6 +279,7 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
+            let mut reader = read_fasta(input_filename);
             if cbl.is_canonical() {
                 eprintln!(
                     "Adding the canonical {K}-mers contained in {input_filename} to the index"
@@ -299,6 +299,7 @@ fn main() {
             let index_filename = args.index.as_str();
             let input_filename = args.input.as_str();
             let mut cbl: CBL<K, T, PREFIX_BITS> = read_index(index_filename);
+            let mut reader = read_fasta(input_filename);
             if cbl.is_canonical() {
                 eprintln!(
                     "Removing the canonical {K}-mers contained in {input_filename} from the index"
